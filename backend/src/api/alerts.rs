@@ -111,7 +111,7 @@ pub async fn viewport(State(st): State<AppState>, Query(q): Query<HashMap<String
         (r, fm)
     };
     let items: Vec<Value> =
-        res.items.iter().map(|a| summary(a, fresh_map.get(&a.source_id).copied().unwrap_or(FreshnessState::Unknown))).collect();
+        res.items.iter().map(|(a, p)| summary(a, *p, fresh_map.get(&a.source_id).copied().unwrap_or(FreshnessState::Unknown))).collect();
     Ok(Json(json!({
         "generated_at_ms": crate::domain::now_ms(),
         "event_sequence": res.event_sequence,
