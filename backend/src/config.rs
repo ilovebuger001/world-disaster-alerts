@@ -19,6 +19,8 @@ pub struct AppConfig {
     pub data_dir: PathBuf,
     pub sources_file: PathBuf,
     pub severity_mapping_file: PathBuf,
+    #[serde(default = "default_gazetteer")]
+    pub gazetteer_file: PathBuf,
     #[serde(default = "default_frontend")]
     pub frontend_dir: PathBuf,
     pub user_agent: String,
@@ -43,6 +45,9 @@ pub struct AppConfig {
     pub allow_private_destinations: bool,
 }
 
+fn default_gazetteer() -> PathBuf {
+    PathBuf::from("config/gazetteer.toml")
+}
 fn default_frontend() -> PathBuf {
     PathBuf::from("frontend")
 }
@@ -85,6 +90,7 @@ pub struct Loaded {
     pub app: AppConfig,
     pub sources: Vec<SourceConfig>,
     pub mapping: SeverityMapping,
+    pub gazetteer: crate::api::search::Gazetteer,
 }
 
 fn read_toml<T: serde::de::DeserializeOwned>(p: &Path) -> Result<T, ConfigError> {
@@ -101,10 +107,11 @@ pub fn load(path: &Path) -> Result<Loaded, ConfigError> {
     let resolve = |p: &PathBuf| if p.is_absolute() { p.clone() } else { base.join(p) };
     let sources: SourcesFile = read_toml(&resolve(&app.sources_file))?;
     let mapping: SeverityMapping = read_toml(&resolve(&app.severity_mapping_file))?;
+    let gazetteer: crate::api::search::Gazetteer = read_toml(&resolve(&app.gazetteer_file))?;
     app.data_dir = resolve(&app.data_dir);
     app.frontend_dir = resolve(&app.frontend_dir);
     validate(&app, &sources.sources, &mapping)?;
-    Ok(Loaded { app, sources: sources.sources, mapping })
+    Ok(Loaded { app, sources: sources.sources, mapping, gazetteer })
 }
 
 pub fn validate(app: &AppConfig, sources: &[SourceConfig], mapping: &SeverityMapping) -> Result<(), ConfigError> {

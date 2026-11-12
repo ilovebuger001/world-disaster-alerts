@@ -63,7 +63,8 @@ pub struct ViewportResult {
     pub clustered: bool,
     pub candidates_capped: bool,
     pub total_matching: usize,
-    pub items: Vec<Arc<AlertRecord>>,
+    /// Page of records with their representative map point (if any).
+    pub items: Vec<(Arc<AlertRecord>, Option<GeoPoint>)>,
     pub next_cursor: Option<String>,
 }
 
@@ -110,7 +111,7 @@ pub fn query(idx: &AlertIndex, v: &Viewport, f: &Filters, page: usize, cursor: O
         }
     }
     // deterministic ordering
-    matched.sort_by(|a, b| sort_key(&a.0).cmp(&sort_key(&b.0)));
+    matched.sort_by_cached_key(|a| sort_key(&a.0));
     let total = matched.len();
 
     // map features: bounded candidates, clustered after filtering (step 8)
@@ -118,7 +119,15 @@ pub fn query(idx: &AlertIndex, v: &Viewport, f: &Filters, page: usize, cursor: O
     let inputs: Vec<ClusterInput> = matched
         .iter()
         .take(CANDIDATE_CAP)
-        .filter_map(|(a, p)| p.map(|p| ClusterInput { alert_id: a.alert_id.clone(), point: p, priority: a.display_priority }))
+        .filter_map(|(a, p)| {
+            p.map(|p| ClusterInput {
+                alert_id: a.alert_id.clone(),
+                point: p,
+                priority: a.display_priority,
+                hazard_type: a.hazard_type.clone(),
+                revision: a.revision,
+            })
+        })
         .collect();
     let (features, clustered) = cluster(&inputs, v.zoom.floor(), CELL_PX, MAX_MAP_FEATURES);
 
@@ -128,8 +137,8 @@ pub fn query(idx: &AlertIndex, v: &Viewport, f: &Filters, page: usize, cursor: O
         Some(c) => matched.iter().position(|(a, _)| sort_key(a) > *c).unwrap_or(total),
         None => 0,
     };
-    let items: Vec<Arc<AlertRecord>> = matched.iter().skip(start).take(page).map(|(a, _)| a.clone()).collect();
-    let next_cursor = if start + items.len() < total { items.last().map(|a| encode_cursor(a)) } else { None };
+    let items: Vec<(Arc<AlertRecord>, Option<GeoPoint>)> = matched.iter().skip(start).take(page).cloned().collect();
+    let next_cursor = if start + items.len() < total { items.last().map(|(a, _)| encode_cursor(a)) } else { None };
 
     ViewportResult { event_sequence: idx.seq, features, clustered, candidates_capped: capped, total_matching: total, items, next_cursor }
 }

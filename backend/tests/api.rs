@@ -12,7 +12,8 @@ fn loaded(dir: &std::path::Path) -> Loaded {
     let sources: SourcesFile = toml::from_str(include_str!("../config/sources.example.toml")).unwrap();
     let m = mapping();
     validate(&app, &sources.sources, &m).unwrap();
-    Loaded { app, sources: sources.sources, mapping: m }
+    let gazetteer = toml::from_str(include_str!("../config/gazetteer.toml")).unwrap();
+    Loaded { app, sources: sources.sources, mapping: m, gazetteer }
 }
 
 async fn get(app: &axum::Router, uri: &str) -> (u16, serde_json::Value) {
@@ -43,6 +44,7 @@ async fn endpoints_and_error_envelope() {
     assert_eq!(b["event_sequence"], 1);
     assert_eq!(b["total_matching"], 1);
     assert_eq!(b["items"][0]["alert_id"], id.as_str());
+    assert!(b["items"][0]["point"]["lat"].is_number());
     assert_eq!(b["features"].as_array().unwrap().len(), 1);
     assert!(b["next_cursor"].is_null());
 
@@ -77,6 +79,13 @@ async fn endpoints_and_error_envelope() {
     assert_eq!(s, 200);
     let usgs = b["sources"].as_array().unwrap().iter().find(|x| x["source_id"] == "usgs-earthquakes-all-day").unwrap();
     assert_eq!(usgs["public_redistribution"], false, "pending legal review is not public redistribution");
+
+    let (s, b) = get(&app, "/api/v1/search?q=chiang").await;
+    assert_eq!(s, 200);
+    assert_eq!(b["areas"][0]["name_en"], "Chiang Mai");
+    assert_eq!(b["disasters"][0]["alert_id"], id.as_str());
+    let (s, _) = get(&app, "/api/v1/search?q=").await;
+    assert_eq!(s, 400);
 
     let (s, b) = get(&app, "/api/v1/stream?after=abc").await;
     assert_eq!((s, b["error"]["code"].as_str()), (400, Some("invalid_cursor")));

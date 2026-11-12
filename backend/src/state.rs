@@ -34,4 +34,5 @@ pub struct AppState {
     pub ready: Arc<AtomicBool>,
     pub sse: Arc<SseLimits>,
     pub api: Arc<ApiConfig>,
+    pub gazetteer: Arc<crate::api::search::Gazetteer>,
 }

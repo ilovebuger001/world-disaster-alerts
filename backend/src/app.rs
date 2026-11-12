@@ -26,6 +26,7 @@ pub fn router(state: AppState, frontend_dir: Option<std::path::PathBuf>) -> Rout
         .route("/api/v1/sources", get(api::sources::sources))
         .route("/api/v1/alerts", get(api::alerts::viewport))
         .route("/api/v1/alerts/:alert_id", get(api::alerts::detail))
+        .route("/api/v1/search", get(api::search::search))
         .route("/api/v1/stream", get(api::stream::stream))
         .with_state(state);
     let app = match frontend_dir {
@@ -83,6 +84,7 @@ pub fn start(loaded: &Loaded, start_ingestion: bool) -> anyhow::Result<Running> 
             client_queue: app.sse_client_queue,
             heartbeat_seconds: app.sse_heartbeat_seconds,
         }),
+        gazetteer: Arc::new(loaded.gazetteer.clone()),
     };
     if start_ingestion {
         let client = build_client(&app.user_agent, &loaded.sources, app.allow_private_destinations)?;

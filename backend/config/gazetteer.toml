@@ -1,0 +1,282 @@
+# Curated gazetteer for area search (spec §64.4). Centres are approximate
+# map-navigation points only; selecting an area never creates or clears an alert.
+
+[[places]]
+name_th = "ประเทศไทย"
+name_en = "Thailand"
+lat = 15.5
+lon = 100.9
+zoom = 5
+
+[[places]]
+name_th = "กรุงเทพมหานคร"
+name_en = "Bangkok"
+lat = 13.756
+lon = 100.502
+zoom = 10
+
+[[places]]
+name_th = "เชียงใหม่"
+name_en = "Chiang Mai"
+lat = 18.788
+lon = 98.985
+zoom = 10
+
+[[places]]
+name_th = "ภูเก็ต"
+name_en = "Phuket"
+lat = 7.88
+lon = 98.39
+zoom = 10
+
+[[places]]
+name_th = "ขอนแก่น"
+name_en = "Khon Kaen"
+lat = 16.44
+lon = 102.83
+zoom = 10
+
+[[places]]
+name_th = "หาดใหญ่"
+name_en = "Hat Yai"
+lat = 7.008
+lon = 100.474
+zoom = 11
+
+[[places]]
+name_th = "ญี่ปุ่น"
+name_en = "Japan"
+lat = 37.0
+lon = 138.0
+zoom = 5
+
+[[places]]
+name_th = "โตเกียว"
+name_en = "Tokyo"
+lat = 35.68
+lon = 139.69
+zoom = 10
+
+[[places]]
+name_th = "ไต้หวัน"
+name_en = "Taiwan"
+lat = 23.7
+lon = 121.0
+zoom = 7
+
+[[places]]
+name_th = "ฟิลิปปินส์"
+name_en = "Philippines"
+lat = 12.0
+lon = 122.0
+zoom = 5
+
+[[places]]
+name_th = "มะนิลา"
+name_en = "Manila"
+lat = 14.6
+lon = 120.98
+zoom = 10
+
+[[places]]
+name_th = "อินโดนีเซีย"
+name_en = "Indonesia"
+lat = -2.0
+lon = 117.0
+zoom = 4
+
+[[places]]
+name_th = "จาการ์ตา"
+name_en = "Jakarta"
+lat = -6.2
+lon = 106.85
+zoom = 10
+
+[[places]]
+name_th = "เมียนมา"
+name_en = "Myanmar"
+lat = 21.0
+lon = 96.0
+zoom = 5
+
+[[places]]
+name_th = "เวียดนาม"
+name_en = "Viet Nam"
+lat = 16.0
+lon = 106.0
+zoom = 5
+
+[[places]]
+name_th = "ลาว"
+name_en = "Laos"
+lat = 18.5
+lon = 103.0
+zoom = 6
+
+[[places]]
+name_th = "กัมพูชา"
+name_en = "Cambodia"
+lat = 12.5
+lon = 105.0
+zoom = 6
+
+[[places]]
+name_th = "มาเลเซีย"
+name_en = "Malaysia"
+lat = 4.0
+lon = 109.0
+zoom = 5
+
+[[places]]
+name_th = "จีน"
+name_en = "China"
+lat = 35.0
+lon = 104.0
+zoom = 4
+
+[[places]]
+name_th = "เกาหลีใต้"
+name_en = "South Korea"
+lat = 36.3
+lon = 127.8
+zoom = 7
+
+[[places]]
+name_th = "อินเดีย"
+name_en = "India"
+lat = 22.0
+lon = 79.0
+zoom = 4
+
+[[places]]
+name_th = "บังกลาเทศ"
+name_en = "Bangladesh"
+lat = 23.7
+lon = 90.0
+zoom = 6
+
+[[places]]
+name_th = "เนปาล"
+name_en = "Nepal"
+lat = 28.3
+lon = 84.0
+zoom = 6
+
+[[places]]
+name_th = "ออสเตรเลีย"
+name_en = "Australia"
+lat = -26.0
+lon = 134.0
+zoom = 4
+
+[[places]]
+name_th = "ซิดนีย์"
+name_en = "Sydney"
+lat = -33.87
+lon = 151.21
+zoom = 10
+
+[[places]]
+name_th = "นิวซีแลนด์"
+name_en = "New Zealand"
+lat = -41.0
+lon = 174.0
+zoom = 5
+
+[[places]]
+name_th = "สหรัฐอเมริกา"
+name_en = "United States"
+lat = 39.0
+lon = -98.0
+zoom = 4
+
+[[places]]
+name_th = "แคลิฟอร์เนีย"
+name_en = "California"
+lat = 37.2
+lon = -119.5
+zoom = 6
+
+[[places]]
+name_th = "อะแลสกา"
+name_en = "Alaska"
+lat = 63.0
+lon = -150.0
+zoom = 4
+
+[[places]]
+name_th = "ฮาวาย"
+name_en = "Hawaii"
+lat = 20.5
+lon = -157.0
+zoom = 7
+
+[[places]]
+name_th = "แคนาดา"
+name_en = "Canada"
+lat = 58.0
+lon = -100.0
+zoom = 3
+
+[[places]]
+name_th = "เม็กซิโก"
+name_en = "Mexico"
+lat = 23.0
+lon = -102.0
+zoom = 5
+
+[[places]]
+name_th = "ชิลี"
+name_en = "Chile"
+lat = -33.0
+lon = -71.0
+zoom = 5
+
+[[places]]
+name_th = "เปรู"
+name_en = "Peru"
+lat = -9.0
+lon = -75.0
+zoom = 5
+
+[[places]]
+name_th = "บราซิล"
+name_en = "Brazil"
+lat = -12.0
+lon = -52.0
+zoom = 4
+
+[[places]]
+name_th = "อาร์เจนตินา"
+name_en = "Argentina"
+lat = -36.0
+lon = -64.0
+zoom = 4
+
+[[places]]
+name_th = "ตุรกี"
+name_en = "Türkiye"
+lat = 39.0
+lon = 35.0
+zoom = 6
+
+[[places]]
+name_th = "อิตาลี"
+name_en = "Italy"
+lat = 42.5
+lon = 12.5
+zoom = 6
+
+[[places]]
+name_th = "กรีซ"
+name_en = "Greece"
+lat = 39.0
+lon = 22.0
+zoom = 6
+
+[[places]]
+name_th = "ไอซ์แลนด์"
+name_en = "Iceland"
+lat = 64.9
+lon = -18.6
+zoom = 6

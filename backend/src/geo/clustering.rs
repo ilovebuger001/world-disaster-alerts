@@ -23,6 +23,8 @@ pub struct ClusterInput {
     pub alert_id: String,
     pub point: GeoPoint,
     pub priority: DisplayPriority,
+    pub hazard_type: String,
+    pub revision: u64,
 }
 
 #[derive(Debug, Serialize, PartialEq)]
@@ -30,8 +32,11 @@ pub struct ClusterInput {
 pub enum MapFeature {
     Alert {
         alert_id: String,
+        revision: u64,
         lat: f64,
         lon: f64,
+        hazard_type: String,
+        display_priority: DisplayPriority,
     },
     Cluster {
         cluster_id: String,
@@ -64,7 +69,14 @@ pub fn cluster(items: &[ClusterInput], zoom: f64, mut cell_px: f64, max_features
                 .map(|((cx, cy), mut members)| {
                     if members.len() == 1 {
                         let m = members[0];
-                        return MapFeature::Alert { alert_id: m.alert_id.clone(), lat: m.point.lat_deg, lon: m.point.lon_deg };
+                        return MapFeature::Alert {
+                            alert_id: m.alert_id.clone(),
+                            revision: m.revision,
+                            lat: m.point.lat_deg,
+                            lon: m.point.lon_deg,
+                            hazard_type: m.hazard_type.clone(),
+                            display_priority: m.priority,
+                        };
                     }
                     members.sort_by(|a, b| a.priority.cmp(&b.priority).then_with(|| a.alert_id.cmp(&b.alert_id)));
                     let n = members.len() as f64;

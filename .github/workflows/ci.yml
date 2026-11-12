@@ -19,12 +19,10 @@ jobs:
         with:
           workspaces: backend
       - name: Build
-        run: cargo build --all-targets
+        run: cargo build --locked --all-targets
       - name: Test
-        run: cargo test --all-targets -- --test-threads=4
+        run: cargo test --locked --all-targets -- --test-threads=4
       - name: Clippy
-        continue-on-error: true
-        run: cargo clippy --all-targets -- -D warnings
-      - name: Lockfile
-        if: always()
-        run: echo "=====LOCK=====" && cat Cargo.lock | base64 -w0 && echo && echo "=====END====="
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Format
+        run: cargo fmt --check

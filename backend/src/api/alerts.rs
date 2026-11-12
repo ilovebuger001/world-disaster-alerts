@@ -2,6 +2,7 @@
 
 use super::sources::overall_freshness;
 use crate::domain::alert::{AlertRecord, AlertStatus, DisplayPriority};
+use crate::domain::geometry::GeoPoint;
 use crate::error::ApiError;
 use crate::geo::validate::Viewport;
 use crate::geo::viewport::{decode_cursor, query, Filters, DEFAULT_PAGE};
@@ -59,7 +60,7 @@ fn source_freshness(st: &AppState, source_id: &str) -> FreshnessState {
     st.index.read().ok().and_then(|i| i.sources.get(source_id).map(|h| h.freshness())).unwrap_or(FreshnessState::Unknown)
 }
 
-pub fn summary(a: &AlertRecord, freshness: FreshnessState) -> Value {
+pub fn summary(a: &AlertRecord, point: Option<GeoPoint>, freshness: FreshnessState) -> Value {
     let v = a.language_variants.first();
     json!({
         "alert_id": a.alert_id,
@@ -79,6 +80,7 @@ pub fn summary(a: &AlertRecord, freshness: FreshnessState) -> Value {
         "expires_at_ms": a.expires_at_ms,
         "source_freshness": freshness,
         "native": a.native,
+        "point": point.map(|p| json!({ "lat": p.lat_deg, "lon": p.lon_deg })),
     })
 }
 
