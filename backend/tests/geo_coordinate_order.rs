@@ -52,10 +52,10 @@ fn polygon_with_hole() {
         [(a, a), (b, a), (b, b), (a, b), (a, a)].iter().map(|(x, y)| GeoPoint { lat_deg: *y, lon_deg: *x }).collect()
     };
     let outer = sq(0.0, 10.0);
-    let hole = sq(4.0, 6.0);
-    assert!(!point_in_polygon(&GeoPoint { lat_deg: 5.0, lon_deg: 5.0 }, &outer, &[hole.clone()]));
-    let ip = polygon_interior_point(&outer, &[hole.clone()]).unwrap();
-    assert!(point_in_polygon(&ip, &outer, &[hole]));
+    let holes = vec![sq(4.0, 6.0)];
+    assert!(!point_in_polygon(&GeoPoint { lat_deg: 5.0, lon_deg: 5.0 }, &outer, &holes));
+    let ip = polygon_interior_point(&outer, &holes).unwrap();
+    assert!(point_in_polygon(&ip, &outer, &holes));
 }
 
 #[test]
