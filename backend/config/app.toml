@@ -1,0 +1,19 @@
+# World Disaster Alerts — application configuration.
+# development: sources still pending legal review may run, but are never
+# marked for public redistribution. production refuses to start in that case.
+environment = "development"
+bind = "0.0.0.0:8080"
+data_dir = "data"
+sources_file = "config/sources.example.toml"
+severity_mapping_file = "config/severity-mapping.toml"
+frontend_dir = "frontend"
+user_agent = "WorldDisasterAlerts/0.1 (+https://github.com/ilovebuger001/world-disaster-alerts)"
+max_in_flight_fetches = 4
+event_log_retention = 100000
+max_replay_events = 1000
+sse_max_connections = 1000
+sse_max_per_ip = 8
+sse_client_queue = 64
+sse_heartbeat_seconds = 20
+writer_queue = 256
+allow_private_destinations = false

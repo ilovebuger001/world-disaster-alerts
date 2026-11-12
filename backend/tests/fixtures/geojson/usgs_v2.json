@@ -1,0 +1,4 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","id":"us7000abcd","properties":{"mag":5.6,"place":"20 km E of Sample, Chile","time":1794470000000,"updated":1794475000000,"url":"https://earthquake.usgs.gov/earthquakes/eventpage/us7000abcd","status":"reviewed","ids":",us7000abcd,","magType":"mww","type":"earthquake","title":"M 5.6 - 20 km E of Sample, Chile"},"geometry":{"type":"Point","coordinates":[-70.5,-33.4,33.0]}},
+{"type":"Feature","id":"ak0261xyz","properties":{"mag":2.1,"place":"Sample, Alaska","time":1794472000000,"updated":1794476000000,"status":"deleted","ids":",ak0261xyz,","type":"earthquake","title":"M 2.1 - Sample, Alaska"},"geometry":{"type":"Point","coordinates":[-151.2,61.3,12.0]}}
+]}

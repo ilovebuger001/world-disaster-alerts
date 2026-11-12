@@ -1,0 +1,73 @@
+# Deterministic, versioned display mapping (spec §7). These labels are
+# presentation groupings only; CAP raw values are always kept and shown.
+# Rules are evaluated top to bottom; the first match wins.
+mapping_version = "2026-11-12.1"
+
+# Earthquake catalog events are post-event information (spec §7.1).
+# Magnitude is shown in provider terminology and never converted to a warning.
+[[rules]]
+hazard_type = "earthquake"
+source_id = "usgs-earthquakes-all-day"
+priority = "information"
+
+[[rules]]
+severity = "Extreme"
+urgency = "Immediate"
+priority = "emergency"
+
+[[rules]]
+severity = "Extreme"
+priority = "warning"
+
+[[rules]]
+severity = "Severe"
+priority = "warning"
+
+[[rules]]
+severity = "Moderate"
+priority = "watch"
+
+[[rules]]
+severity = "Minor"
+priority = "advisory"
+
+[[rules]]
+severity = "Unknown"
+priority = "unknown"
+
+# Hazard display groups from source event text / CAP category (raw kept).
+[[hazard_rules]]
+any_of = ["tsunami"]
+hazard_type = "tsunami"
+
+[[hazard_rules]]
+any_of = ["earthquake"]
+hazard_type = "earthquake"
+
+[[hazard_rules]]
+any_of = ["volcan", "ashfall"]
+hazard_type = "volcano"
+
+[[hazard_rules]]
+any_of = ["flood", "flash flood", "inundation"]
+hazard_type = "flood"
+
+[[hazard_rules]]
+any_of = ["hurricane", "typhoon", "cyclone", "tropical storm"]
+hazard_type = "cyclone"
+
+[[hazard_rules]]
+any_of = ["fire"]
+hazard_type = "wildfire"
+
+[[hazard_rules]]
+any_of = ["landslide", "mudslide", "debris flow"]
+hazard_type = "landslide"
+
+[[hazard_rules]]
+any_of = ["heat"]
+hazard_type = "heat"
+
+[[hazard_rules]]
+any_of = ["thunderstorm", "tornado", "severe weather", "wind", "storm"]
+hazard_type = "storm"

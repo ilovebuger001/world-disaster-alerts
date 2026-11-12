@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>TH-SAMPLE-2026-003</identifier>
+  <sender>alerts@example.invalid</sender>
+  <sent>2026-11-12T12:00:00+07:00</sent>
+  <status>Actual</status>
+  <msgType>Cancel</msgType>
+  <scope>Public</scope>
+  <references>alerts@example.invalid,TH-SAMPLE-2026-002,2026-11-12T11:00:00+07:00</references>
+</alert>

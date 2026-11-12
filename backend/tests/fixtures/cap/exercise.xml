@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>TH-SAMPLE-EXER-9</identifier>
+  <sender>alerts@example.invalid</sender>
+  <sent>2026-11-12T10:00:00+07:00</sent>
+  <status>Exercise</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <language>th-TH</language>
+    <category>Met</category>
+    <event>Flash flood</event>
+    <responseType>Monitor</responseType>
+    <urgency>Expected</urgency>
+    <severity>Severe</severity>
+    <certainty>Likely</certainty>
+    <expires>2099-01-01T00:00:00+07:00</expires>
+    <senderName>Sample Met Agency</senderName>
+    <headline>เตือนภัยน้ำท่วมฉับพลัน (ตัวอย่าง)</headline>
+    <description>ข้อความทดสอบสำหรับชุดทดสอบ</description>
+    <instruction>ติดตามประกาศของหน่วยงานท้องถิ่น</instruction>
+    <web>https://example.invalid/alerts/001</web>
+    <area>
+      <areaDesc>Chiang Mai (sample)</areaDesc>
+      <polygon>18.95,98.82 18.97,99.12 18.62,99.18 18.55,98.90 18.95,98.82</polygon>
+      <circle>18.79,98.98 5.0</circle>
+      <geocode><valueName>SAMPLE-CODE</valueName><value>50</value></geocode>
+    </area>
+    <area>
+      <areaDesc>Downstream river communities (text only)</areaDesc>
+    </area>
+  </info>
+  <info>
+    <language>en-US</language>
+    <category>Met</category>
+    <event>Flash flood</event>
+    <urgency>Expected</urgency>
+    <severity>Severe</severity>
+    <certainty>Likely</certainty>
+    <expires>2099-01-01T00:00:00+07:00</expires>
+    <headline>Flash flood warning (sample)</headline>
+    <area>
+      <areaDesc>Chiang Mai (sample)</areaDesc>
+      <polygon>18.95,98.82 18.97,99.12 18.62,99.18 18.55,98.90 18.95,98.82</polygon>
+    </area>
+  </info>
+</alert>

@@ -1,0 +1,62 @@
+# Source registry (spec §4.1, §4.6). A source is production-enabled only
+# after authority, endpoint, coverage, operations, rights and quality review.
+# coverage_state, onboarding_state and runtime freshness are independent.
+
+[[sources]]
+source_id = "usgs-earthquakes-all-day"
+agency_name = "U.S. Geological Survey (USGS) Earthquake Hazards Program"
+country_or_region = "Global (catalog), United States (authoritative networks)"
+official_homepage = "https://earthquake.usgs.gov/"
+feed_url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"
+format = "geojson_usgs"
+hazard_types = ["earthquake"]
+geographic_coverage = "Global catalog; completeness varies by region and magnitude"
+poll_interval_seconds = 60
+request_timeout_seconds = 20
+max_response_bytes = 8388608
+expected_freshness_seconds = 300
+terms_or_redistribution_notes = "USGS-authored data are generally public domain; credit USGS. Formal rights review not yet recorded."
+adapter_name = "usgs_geojson"
+enabled = true
+publisher_class = "scientific"
+authority_role = "scientific_monitor"
+jurisdiction_id = "US"
+jurisdiction_level = "national"
+source_language = ["en"]
+source_timezone = "UTC"
+update_delivery_model = "pull"
+cadence_evidence_url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php"
+cache_policy = "provider-specific"
+authentication = "none"
+terms_url = "https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits"
+redistribution_status = "review_pending"
+commercial_use_allowed = "unknown"
+adaptation_allowed = "unknown"
+attribution_template = "Source: U.S. Geological Survey"
+adapter_version = "usgs_geojson/1"
+coverage_state = "integrated"
+onboarding_state = "legal_review_pending"
+
+# Template for a national CAP 1.2 feed. Disabled until every onboarding
+# review in spec §4.6 has passed and the endpoint has been verified.
+[[sources]]
+source_id = "cap-template"
+agency_name = "Replace with the verified issuing authority"
+country_or_region = "Replace"
+official_homepage = "https://example.invalid/"
+feed_url = "https://example.invalid/cap/alerts.xml"
+format = "cap"
+hazard_types = ["all"]
+geographic_coverage = "Replace with the documented jurisdiction"
+poll_interval_seconds = 60
+request_timeout_seconds = 20
+max_response_bytes = 4194304
+expected_freshness_seconds = 600
+terms_or_redistribution_notes = "Not reviewed."
+adapter_name = "cap"
+enabled = false
+publisher_class = "national"
+authority_role = "warning_issuer"
+redistribution_status = "review_pending"
+coverage_state = "not_yet_verified"
+onboarding_state = "discovered"

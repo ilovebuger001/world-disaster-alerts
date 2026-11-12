@@ -1,0 +1,6 @@
+{"type":"FeatureCollection","metadata":{"generated":1794476000000,"title":"sample"},"features":[
+{"type":"Feature","id":"us7000abcd","properties":{"mag":5.4,"place":"20 km E of Sample, Chile","time":1794470000000,"updated":1794471000000,"url":"https://earthquake.usgs.gov/earthquakes/eventpage/us7000abcd","detail":"https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us7000abcd&format=geojson","status":"automatic","tsunami":0,"sig":449,"net":"us","code":"7000abcd","ids":",us7000abcd,","magType":"mww","type":"earthquake","title":"M 5.4 - 20 km E of Sample, Chile","alert":null},"geometry":{"type":"Point","coordinates":[-70.5,-33.4,35.2]}},
+{"type":"Feature","id":"ak0261xyz","properties":{"mag":2.1,"place":"Sample, Alaska","time":1794472000000,"updated":1794472500000,"status":"automatic","ids":",ak0261xyz,","type":"earthquake","title":"M 2.1 - Sample, Alaska"},"geometry":{"type":"Point","coordinates":[-151.2,61.3,12.0]}},
+{"type":"Feature","id":"nogeom1","properties":{"mag":1.0,"time":1794472000000,"updated":1794472000000,"ids":",nogeom1,","type":"earthquake","place":"Unlocated sample"},"geometry":null},
+{"type":"Feature","id":"poly1","properties":{"time":1794472000000,"updated":1794472000000},"geometry":{"type":"Polygon","coordinates":[[[0,0],[1,0],[1,1],[0,0]]]}}
+]}
