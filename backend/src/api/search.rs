@@ -78,7 +78,7 @@ pub async fn search(State(st): State<AppState>, Query(q): Query<HashMap<String, 
             })
             .collect()
     };
-    disasters.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)));
+    disasters.sort_by_key(|d| (d.0, d.1));
     let disasters: Vec<Value> = disasters.into_iter().take(limit).map(|d| d.2).collect();
     Ok(Json(json!({ "areas": areas, "disasters": disasters })))
 }
