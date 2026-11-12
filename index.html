@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>World Disaster Alerts — ตัวอย่าง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+(function(){try{var t=localStorage.getItem('wda.theme')||'auto';var d=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){document.documentElement.dataset.theme='light';}})();
+</script>
+<style>
+:root{
+  --font:"Inter","Noto Sans Thai",system-ui,sans-serif;
+  --panel:#ffffff;--panel2:#f3f5f8;--text:#1f2329;--muted:#5f6873;--line:#e2e5ea;--accent:#1f2937;--focus:#1a73e8;
+  --shadow:0 2px 6px rgba(15,23,42,.15),0 8px 24px rgba(15,23,42,.10);
+  --emergency:#c5221f;--warning:#e8710a;--watch:#e3a008;--advisory:#1967d2;--information:#5f6b7a;--unknown:#9aa3ae;
+  --c-shelter:#2563eb;--c-safe:#0f766e;--c-hospital:#7c3aed;--c-community:#0891b2;
+  --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+[data-theme=dark]{--panel:#1e2228;--panel2:#272c34;--text:#e8eaed;--muted:#a1a8b3;--line:#343a44;--accent:#e8eaed;--focus:#8ab4f8;--shadow:0 2px 6px rgba(0,0,0,.5),0 8px 24px rgba(0,0,0,.35)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.app{position:fixed;inset:0}
+#mapwrap{position:absolute;inset:0;background:#b9dcf5;transition:background .2s}
+#map{position:absolute;inset:0}
+.maploading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#475569;font-size:14px}
+
+/* top bar */
+.top{position:absolute;top:calc(12px + var(--safe-t));left:12px;right:12px;display:flex;gap:10px;align-items:flex-start;z-index:30;pointer-events:none}
+.top>*{pointer-events:auto}
+.search{position:relative;width:400px;flex:none}
+.search .pill{display:flex;align-items:center;height:48px;background:var(--panel);border-radius:24px;box-shadow:var(--shadow);padding:0 6px 0 16px;gap:10px}
+.search input{flex:1;border:0;background:none;outline:none;height:100%;font-size:15.5px;min-width:0}
+.search input::-webkit-search-cancel-button{display:none}
+.search .pill svg{color:var(--muted);flex:none}
+.iconbtn{width:38px;height:38px;border-radius:50%;border:0;background:none;display:flex;align-items:center;justify-content:center;color:var(--muted);flex:none}
+.iconbtn:hover{background:var(--panel2)}
+.sugg{position:absolute;top:54px;left:0;right:0;background:var(--panel);border-radius:16px;box-shadow:var(--shadow);max-height:60vh;overflow:auto;display:none;padding:6px 0}
+.sugg.open{display:block}
+.sugg h4{margin:8px 16px 2px;font-size:11.5px;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.sugg [role=option]{display:flex;gap:12px;align-items:center;padding:8px 16px;cursor:pointer}
+.sugg [role=option][aria-selected=true],.sugg [role=option]:hover{background:var(--panel2)}
+.sugg .sub{color:var(--muted);font-size:12.5px}
+.sugg .none{padding:10px 16px;color:var(--muted)}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:4px 2px 8px;min-width:0;flex:1}
+.chips::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px 0 11px;border-radius:18px;border:0;background:var(--panel);box-shadow:var(--shadow);font-size:13.5px;font-weight:500;white-space:nowrap;flex:none}
+.chip .cdot{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff}
+.chip[aria-pressed=false]{opacity:.62}
+.chip[aria-pressed=false] .cdot{background:#9aa3ae!important}
+.chip .n{color:var(--muted);font-weight:500}
+
+/* right controls */
+.ctrls{position:absolute;right:14px;bottom:calc(18px + var(--safe-b));display:flex;flex-direction:column;gap:10px;z-index:20;align-items:flex-end}
+.cbtn{width:44px;height:44px;border-radius:50%;border:0;background:var(--panel);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;color:var(--text);font-size:20px}
+.cbtn[aria-pressed=true]{color:var(--focus)}
+.zoom{display:flex;flex-direction:column;border-radius:22px;background:var(--panel);box-shadow:var(--shadow);overflow:hidden}
+.zoom button{width:44px;height:44px;border:0;background:none;font-size:22px;color:var(--text)}
+.zoom button+button{border-top:1px solid var(--line)}
+.row{display:flex;gap:10px}
+.langpill{height:44px;border-radius:22px;border:0;background:var(--panel);box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;padding:0 16px;font-weight:600;font-size:14px}
+
+/* status + legend */
+.statusbar{position:absolute;left:14px;bottom:calc(18px + var(--safe-b));z-index:20;display:flex;flex-direction:column;gap:8px;align-items:flex-start;max-width:calc(100% - 200px)}
+.status{display:flex;align-items:center;gap:7px;background:var(--panel);box-shadow:var(--shadow);border-radius:16px;padding:6px 12px;font-size:12.5px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--watch)}
+.legend{background:var(--panel);box-shadow:var(--shadow);border-radius:14px;padding:8px 12px;font-size:12px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.legend span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.sw{width:10px;height:10px;border-radius:50%;display:inline-block}
+.sq{border-radius:3px}
+.nomark{position:absolute;left:50%;bottom:calc(18px + var(--safe-b));transform:translateX(-50%);background:var(--panel);border-radius:16px;padding:8px 14px;font-size:13px;box-shadow:var(--shadow);z-index:19;max-width:60%;text-align:center}
+.nomark[hidden]{display:none}
+
+/* side card (desktop) / bottom sheet (mobile) */
+.detail{position:absolute;left:12px;top:calc(72px + var(--safe-t));bottom:12px;width:400px;background:var(--panel);border-radius:16px;box-shadow:var(--shadow);z-index:25;display:none;flex-direction:column;overflow:hidden}
+.app.has-detail .detail{display:flex}
+.detail-inner{overflow:auto;padding:16px 18px 24px;flex:1}
+.sheetbar{display:none}
+.app.has-detail .chips{visibility:visible}
+
+/* floating panels */
+.float{position:absolute;right:72px;top:calc(72px + var(--safe-t));width:370px;max-height:calc(100% - 165px);overflow:auto;background:var(--panel);border-radius:16px;box-shadow:var(--shadow);padding:14px 16px;z-index:26;display:none}
+.float.open{display:block}
+.float h2{font-size:16px;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center}
+.float h3{font-size:13px;margin:14px 0 6px;color:var(--muted);font-weight:600}
+.float p,.float li{font-size:13.5px;margin:4px 0}
+.x{border:0;background:none;width:36px;height:36px;border-radius:50%;font-size:22px;line-height:1;color:var(--muted);flex:none}
+.x:hover{background:var(--panel2)}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--panel2);padding:8px 6px;font-size:13px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--panel)}
+.fchips{display:flex;flex-wrap:wrap;gap:6px}
+.fchip{border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:4px 12px;font-size:13px;min-height:32px}
+.fchip[aria-pressed=true]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+.clear{border:0;background:none;color:var(--focus);font-size:13px;padding:6px 0;margin-top:8px}
+.srcrow{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.health{font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap;height:fit-content}
+.health.ok{color:#1967d2;border-color:#1967d255}.health.delayed{color:#b07800;border-color:#b0780055}.health.stale{color:var(--emergency);border-color:#c5221f55}
+.item{display:flex;gap:10px;padding:10px 4px;border:0;border-bottom:1px solid var(--line);cursor:pointer;width:100%;text-align:left;background:none}
+.item:hover{background:var(--panel2)}
+.item .t{font-weight:600;font-size:14px}
+.item .m{font-size:12.5px;color:var(--muted)}
+.ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.ico.f{border-radius:8px}
+.tabs{display:flex;gap:6px;margin:6px 0 4px}
+/* detail content */
+.dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.dhead h1{font-size:20px;margin:8px 0 2px;line-height:1.3}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;border-radius:6px;padding:2px 8px;color:#fff;white-space:nowrap}
+.pill2{display:inline-block;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 9px;margin-left:4px}
+.demo{background:var(--panel2);border-radius:10px;padding:8px 10px;font-size:12.5px;color:var(--muted);margin:10px 0}
+.note{font-size:13.5px;margin:8px 0;padding:8px 10px;border-radius:10px;border:1px solid var(--line)}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:13.5px;margin:10px 0}
+.kv dt{color:var(--muted)}.kv dd{margin:0}
+.sec{margin-top:16px}
+.sec h2{font-size:12.5px;color:var(--muted);font-weight:600;margin:0 0 6px;letter-spacing:.04em}
+.quote{border-left:3px solid var(--line);padding:6px 12px;background:var(--panel2);border-radius:0 8px 8px 0;font-size:14px;white-space:pre-wrap}
+.mt{font-size:12px;color:var(--muted);margin-bottom:4px}
+.srcbtn{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:10px 16px;border-radius:20px;background:var(--focus);color:#fff;text-decoration:none;font-weight:600;font-size:14px}
+[data-theme=dark] .srcbtn{color:#111}
+.st-open{color:#1967d2}.st-full,.st-closed{color:var(--emergency)}.st-unknown,.st-not_yet_open,.st-temporarily_unavailable{color:#b07800}
+.toast{position:absolute;left:50%;top:calc(130px + var(--safe-t));transform:translateX(-50%);background:#202124;color:#fff;padding:9px 16px;border-radius:10px;font-size:13px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+@media (max-width:760px){
+  .top{flex-direction:column;gap:8px;left:10px;right:10px}
+  .search{width:100%}
+  .chips{width:100%;padding-bottom:6px}
+  .statusbar{left:10px;max-width:calc(100% - 170px)}.status span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.status{max-width:100%}
+  .legend{display:none}
+  .ctrls{right:10px}
+  .detail{left:0;right:0;top:auto;bottom:0;width:auto;height:52%;border-radius:18px 18px 0 0;transition:height .2s ease}
+  .app.sheet-full .detail{height:calc(100% - 8px - var(--safe-t))}
+  .app.has-detail .ctrls,.app.has-detail .statusbar{display:none}
+  .detail-inner{padding:2px 16px calc(24px + var(--safe-b))}
+  .sheetbar{display:flex;justify-content:center;padding:8px 0 2px}
+  .sheetbar button{width:64px;height:22px;border:0;background:none;display:flex;align-items:center;justify-content:center}
+  .sheetbar span{width:40px;height:5px;border-radius:3px;background:var(--line)}
+  .float{left:10px;right:10px;width:auto;top:auto;bottom:calc(10px + var(--safe-b));max-height:72%}
+  .nomark{max-width:80%;bottom:auto;top:calc(120px + var(--safe-t))}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div id="mapwrap">
+    <div class="maploading" id="maploading"></div>
+    <div id="map" role="application" aria-label="แผนที่"></div>
+  </div>
+
+  <div class="top">
+    <div class="search" role="combobox" aria-haspopup="listbox" aria-owns="sugg" aria-expanded="false" id="searchbox">
+      <div class="pill">
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="q" type="search" autocomplete="off" aria-autocomplete="list" aria-controls="sugg">
+        <button class="iconbtn" id="qclear" hidden aria-label="ล้าง">×</button>
+        <button class="iconbtn" id="filterBtn" aria-controls="filters" aria-label="ตัวกรอง"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="sugg" id="sugg" role="listbox"></div>
+    </div>
+    <div class="chips" id="chips" role="toolbar"></div>
+  </div>
+
+  <aside class="detail" id="detail">
+    <div class="sheetbar"><button id="sheetToggle" aria-label="ขยาย"><span></span></button></div>
+    <div class="detail-inner" id="detailInner"></div>
+  </aside>
+
+  <div class="nomark" id="nomark" hidden></div>
+  <div class="statusbar">
+    <div class="legend" id="legend" aria-hidden="true"></div>
+    <div class="status" role="status" aria-live="polite"><span class="dot"></span><span id="statusText"></span></div>
+  </div>
+
+  <div class="ctrls">
+    <button class="cbtn" id="listBtn" aria-pressed="false" aria-controls="listPanel"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <button class="cbtn" id="styleBtn" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+    <button class="cbtn" id="worldBtn"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l4 10h-8z" fill="#d93025"/><path d="M12 22l-4-10h8z" fill="#9aa0a6"/></svg></button>
+    <button class="cbtn" id="locBtn"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <div class="zoom"><button id="zin" aria-label="+">+</button><button id="zout" aria-label="−">−</button></div>
+    <div class="row">
+      <button class="langpill" id="langBtn" aria-controls="settings"><span id="langCode">TH</span><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+      <button class="cbtn" id="helpBtn" aria-pressed="false" aria-controls="help">?</button>
+    </div>
+  </div>
+
+  <div class="float" id="listPanel" role="region"></div>
+  <div class="float" id="filters" role="dialog"></div>
+  <div class="float" id="help" role="dialog"></div>
+  <div class="float" id="settings" role="dialog"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/4.9.0/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/world.js"></script>
+<script>
+(function(){
+'use strict';
+/* ===== CONFIG: ใส่ API key ของ Google Maps ตรงนี้ (เว้นว่าง = ใช้แผนที่เวกเตอร์สำรอง) ===== */
+const CONFIG={
+  GOOGLE_MAPS_API_KEY:'AIzaSyDDh_w-ZMP8_-nWPLp_9EMM2Wfz7nUlQ9E',
+  GOOGLE_MAP_ID:'DEMO_MAP_ID'   // เปลี่ยนเป็น Map ID ของโปรเจกต์ตอนใช้งานจริง
+};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ================= i18n ================= */
+const CAT={
+th:{searchPh:'ค้นหาพื้นที่หรือภัยพิบัติ',loading:'กำลังโหลดแผนที่…',mapFail:'โหลดแผนที่ไม่สำเร็จ — รายการยังใช้งานได้',
+ layers:{alerts:'ภัยพิบัติ',hospital:'โรงพยาบาล',official_shelter:'ที่พักพิง',designated_safe_location:'จุดปลอดภัยที่กำหนด',community_service:'จุดช่วยเหลือ'},
+ hz:{earthquake:'แผ่นดินไหว',flood:'น้ำท่วม',cyclone:'พายุ',wildfire:'ไฟป่า',volcano:'ภูเขาไฟ',tsunami:'สึนามิ',heat:'ความร้อน',landslide:'ดินถล่ม',storm:'พายุฝนฟ้าคะนอง'},
+ st:{active:'มีผล',updated:'ปรับปรุง',expired:'หมดอายุ',cancelled:'ยกเลิก'},tr:{h6:'6 ชม.',h24:'24 ชม.',d7:'7 วัน'},
+ pr:{emergency:'ฉุกเฉิน',warning:'เตือนภัย',watch:'เฝ้าระวัง',advisory:'แนะนำ',information:'ข้อมูล',unknown:'ไม่ทราบ'},
+ fst:{open:'เปิดรับ',closed:'ปิด',full:'เต็ม',temporarily_unavailable:'ปิดชั่วคราว',not_yet_open:'ยังไม่เปิด',unknown:'ไม่ยืนยันสถานะ'},
+ areas:'พื้นที่',disasters:'ภัยพิบัติ',noResult:'ไม่พบผลลัพธ์',stDemo:'ข้อมูลตัวอย่าง · จำลอง',stOffline:'ออฟไลน์ · ข้อมูลล่าสุดที่เก็บไว้',upd:'อัปเดต',
+ demoNote:'ข้อมูลตัวอย่างสำหรับดูหน้าตาระบบ ไม่ใช่การแจ้งเตือนหรือสถานะจริง ลิงก์แหล่งข้อมูลพาไปหน้าหลักของหน่วยงาน',
+ hazard:'ประเภทภัย',display:'กลุ่มการแสดงผล',native:'ค่าตามแหล่งข้อมูล',status:'สถานะ',agency:'หน่วยงานผู้ออก',published:'เวลาเผยแพร่',fetched:'ดึงข้อมูลล่าสุด',revision:'ฉบับที่',freshness:'ความสดของแหล่ง',
+ original:'ข้อความต้นฉบับจากหน่วยงาน',translation:'คำแปลภาษาไทย',mtLabel:'แปลด้วยเครื่อง · ไม่ใช่ข้อความทางการ',mtNone:'ยังไม่มีคำแปล',openSrc:'เปิดแหล่งข้อมูลทางการ',
+ geomOfficial:'เส้นประบนแผนที่คือขอบเขตที่หน่วยงานระบุ',geomNone:'แหล่งข้อมูลไม่ได้ระบุขอบเขตพื้นที่ จึงแสดงเป็นจุดเท่านั้น',
+ monitorNote:'ข้อมูลเฝ้าติดตาม (จุดความร้อนจากดาวเทียม) ไม่ใช่คำสั่งอพยพ และใช้ยืนยันว่าพื้นที่ปลอดภัยหรือไม่ไม่ได้',
+ eqNote:'ขนาดแผ่นดินไหวบอกขนาดของเหตุการณ์ ไม่ใช่ความรุนแรงของการสั่นในแต่ละพื้นที่ ข้อมูลนี้เป็นรายงานหลังเกิดเหตุ',
+ crossNote:'ระบบระหว่างประเทศใช้ตรวจสอบเทียบ ไม่ใช่ผู้ออกคำเตือนระดับประเทศ ให้ยึดประกาศของหน่วยงานในพื้นที่',
+ fCategory:'ประเภทสถานที่',fAuthority:'หน่วยงานรับผิดชอบ',fAddress:'ที่ตั้ง',fCoord:'พิกัด',fPrec:{exact:'พิกัดจากแหล่งข้อมูล',approximate:'โดยประมาณ'},fStatus:'สถานะ',fStatusAt:'สถานะ ณ',fCapacity:'ความจุ',fServices:'บริการ',fScope:'ขอบเขตการกำหนด',fHours:'เวลาทำการ',
+ facWarn:{hospital:'โรงพยาบาลอาจเสียหาย เข้าถึงไม่ได้ หรือรับผู้ป่วยเต็ม สถานะการให้บริการจริงให้ตรวจสอบกับโรงพยาบาลหรือหน่วยงานสาธารณสุข',official_shelter:'ที่พักพิงอาจเต็มหรือไม่เหมาะกับภัยหรือบุคคลบางกลุ่ม การอยู่ใกล้ภัยไม่ได้แปลว่าไม่ได้รับผลกระทบ',designated_safe_location:'กำหนดเป็นจุดปลอดภัยเฉพาะภัยและช่วงเวลาที่หน่วยงานระบุ ไม่ได้รับประกันความปลอดภัยของเส้นทาง',community_service:'จุดช่วยเหลืออาจมีเวลาทำการหรือเงื่อนไขผู้มีสิทธิ์จำกัด'},
+ circleNote:'วงกลมรอบสถานที่ใช้บอกตำแหน่งเท่านั้น ไม่ใช่เขตปลอดภัยหรือรัศมีให้บริการ',
+ notFound:'ไม่พบรายการนี้ หรือหมดอายุแล้ว',close:'ปิด',
+ listTitle:'ในมุมมองนี้',listEmpty:'ไม่มีรายการที่ตรงกับตัวกรองในมุมมองนี้ — ไม่ได้หมายความว่าพื้นที่นี้ปลอดภัย',
+ noMarker:'ไม่มีการแจ้งเตือนในมุมมองนี้ ไม่ได้แปลว่าพื้นที่ปลอดภัย',
+ filters:'ตัวกรองภัยพิบัติ',fHazard:'ประเภทภัย',fSt:'สถานะ',fTime:'ช่วงเวลา (เวลาเผยแพร่)',clear:'ล้างตัวกรอง',
+ helpTitle:'ช่วยเหลือ',hSafe:'สำคัญ',hSafeT:'การไม่มีหมุดไม่ได้ยืนยันว่าพื้นที่ปลอดภัย แหล่งข้อมูลอาจล่าช้า ล่ม หรือไม่ครอบคลุม ให้ทำตามคำสั่งของหน่วยงานในพื้นที่เสมอ',
+ hMarkers:'หมุดภัยพิบัติ',hMarkersT:'หมุดหยดน้ำ: ไอคอนบอกประเภทภัย สีบอกกลุ่มการแสดงผล วงกลมมีตัวเลขคือกลุ่มของหลายรายการ',
+ hFac:'สถานที่ทางการ',hFacT:'หมุดสี่เหลี่ยมคือสถานที่ที่หน่วยงานรับผิดชอบเผยแพร่ แยกจากภัยพิบัติ สีบอกประเภทเท่านั้น ไม่ได้บอกว่าเปิดหรือปลอดภัย',
+ hNoGreen:'ไม่มีสีเขียวบนหมุด เพราะไม่มีสีใดหมายถึง “ปลอดภัย”',
+ hSources:'สถานะแหล่งข้อมูล',hFiltered:'ข้อความทดสอบ/ซ้อมแผนที่ถูกคัดออก',hAI:'คำแปล',hAIT:'คำแปลเป็นตัวช่วยเท่านั้น ข้อความต้นฉบับและลิงก์ทางการแสดงเสมอ AI ไม่สร้าง ยกระดับ หรือยกเลิกการแจ้งเตือน',
+ hCov:'ข้อจำกัดของตัวอย่าง',hCovT:'ยังไม่เชื่อมต่อแหล่งข้อมูลจริงและไม่ครอบคลุมทั่วโลก ไม่มีการเก็บภาพแผนที่ Google ไว้ใช้ออฟไลน์',
+ sTitle:'ภาษาและธีม',sTheme:'ธีม',sLang:'ภาษา',auto:'อัตโนมัติ',light:'สว่าง',dark:'มืด',
+ ok:'ปกติ',delayed:'ล่าช้า',stale:'ขาดการอัปเดต',lastOk:'สำเร็จล่าสุด',newEvent:'อัปเดตใหม่',ago:{s:'เมื่อสักครู่',m:'นาทีที่แล้ว',h:'ชม. ที่แล้ว',d:'วันที่แล้ว'},
+ styleSimple:'แผนที่',styleTerrain:'ภูมิประเทศ',styleSat:'ดาวเทียม',world:'ทั้งโลก',locate:'ตำแหน่งของฉัน',list:'รายการ',help:'ช่วยเหลือ',
+ locFail:'เบราว์เซอร์นี้ไม่อนุญาตให้ใช้ตำแหน่ง',mapAuth:'API key ของ Google Maps ใช้ไม่ได้ — เปลี่ยนไปใช้แผนที่สำรอง',locOk:'ตำแหน่งของคุณใช้แสดงบนแผนที่ในเครื่องนี้เท่านั้น ไม่ถูกส่งออกไป',you:'ตำแหน่งของคุณ',items:'รายการ',zoomIn:'ซูมเข้า'},
+en:{searchPh:'Search areas or disasters',loading:'Loading map…',mapFail:'Map failed to load — the list still works',
+ layers:{alerts:'Disasters',hospital:'Hospitals',official_shelter:'Shelters',designated_safe_location:'Designated safe sites',community_service:'Help points'},
+ hz:{earthquake:'Earthquake',flood:'Flood',cyclone:'Cyclone',wildfire:'Wildfire',volcano:'Volcano',tsunami:'Tsunami',heat:'Heat',landslide:'Landslide',storm:'Thunderstorm'},
+ st:{active:'Active',updated:'Updated',expired:'Expired',cancelled:'Cancelled'},tr:{h6:'6 h',h24:'24 h',d7:'7 d'},
+ pr:{emergency:'Emergency',warning:'Warning',watch:'Watch',advisory:'Advisory',information:'Information',unknown:'Unknown'},
+ fst:{open:'Open',closed:'Closed',full:'Full',temporarily_unavailable:'Temporarily unavailable',not_yet_open:'Not yet open',unknown:'Status not confirmed'},
+ areas:'Areas',disasters:'Disasters',noResult:'No results',stDemo:'Sample data · simulated',stOffline:'Offline · last stored data',upd:'Updated',
+ demoNote:'Sample data to preview the product — not a real alert or status. Source links open the agency home page.',
+ hazard:'Hazard',display:'Display group',native:'Source-native value',status:'Status',agency:'Issuing agency',published:'Published',fetched:'Last fetched',revision:'Revision',freshness:'Source freshness',
+ original:'Original agency wording',translation:'Thai translation',mtLabel:'Machine translated · not official wording',mtNone:'No translation yet',openSrc:'Open official source',
+ geomOfficial:'The dashed outline is the area published by the agency',geomNone:'The source supplied no area geometry, so only a point is shown',
+ monitorNote:'Monitoring data (satellite hotspot). Not an evacuation order and cannot confirm whether an area is safe.',
+ eqNote:'Magnitude describes event size, not shaking at a given place. This is post-event information.',
+ crossNote:'International systems are cross-checks, not national warning issuers. Follow local authorities.',
+ fCategory:'Category',fAuthority:'Responsible authority',fAddress:'Location',fCoord:'Coordinates',fPrec:{exact:'source coordinates',approximate:'approximate'},fStatus:'Status',fStatusAt:'Status as of',fCapacity:'Capacity',fServices:'Services',fScope:'Designation scope',fHours:'Hours',
+ facWarn:{hospital:'A hospital can be damaged, unreachable or overwhelmed. Confirm current service with the hospital or health authority.',official_shelter:'A shelter can be full or unsuitable for some hazards or people. Being near a hazard does not mean it is unaffected.',designated_safe_location:'Designated only for the hazard and period the authority states. It does not guarantee a safe route.',community_service:'Help points may have limited hours or eligibility.'},
+ circleNote:'The circle around a facility is a location cue only — not a safety perimeter or service radius.',
+ notFound:'Not found or no longer available',close:'Close',
+ listTitle:'In this view',listEmpty:'Nothing matches the filters in this view — this does not mean the area is safe',
+ noMarker:'No alerts in this view. That does not mean the area is safe.',
+ filters:'Disaster filters',fHazard:'Hazard',fSt:'Status',fTime:'Time range (published)',clear:'Clear filters',
+ helpTitle:'Help',hSafe:'Important',hSafeT:'A missing marker is never proof of safety. Feeds can be delayed, down or incomplete. Always follow local authorities.',
+ hMarkers:'Disaster markers',hMarkersT:'Teardrop pins: icon = hazard, colour = display group. Numbered circles group several alerts.',
+ hFac:'Official facilities',hFacT:'Square pins are locations published by the responsible authority, separate from alerts. Colour shows category only — never open or safe.',
+ hNoGreen:'Pins never use green, because no colour means “safe”.',
+ hSources:'Source status',hFiltered:'Test/exercise messages excluded',hAI:'Translations',hAIT:'Translations are aids only. Original wording and official links are always shown. AI never creates, upgrades or cancels alerts.',
+ hCov:'Preview limitations',hCovT:'Not connected to live sources and not global. Google map imagery is never cached for offline use.',
+ sTitle:'Language & theme',sTheme:'Theme',sLang:'Language',auto:'Auto',light:'Light',dark:'Dark',
+ ok:'Healthy',delayed:'Delayed',stale:'Stale',lastOk:'Last success',newEvent:'New update',ago:{s:'just now',m:'min ago',h:'h ago',d:'d ago'},
+ styleSimple:'Map',styleTerrain:'Terrain',styleSat:'Satellite',world:'World',locate:'My location',list:'List',help:'Help',
+ locFail:'This browser does not allow location here',mapAuth:'Google Maps API key rejected — using fallback map',locOk:'Your location is shown on this device only and is not sent anywhere',you:'Your location',items:'items',zoomIn:'Zoom in'}
+};
+let langPref=store.get('wda.lang','th');
+function resolveLang(){if(langPref!=='auto')return langPref;for(const x of (navigator.languages||[navigator.language||'en'])){const b=String(x).slice(0,2).toLowerCase();if(CAT[b])return b}return 'en'}
+let LANG=resolveLang(),T=CAT[LANG];
+const L=o=>o?(o[LANG]||o.en||o.th):'';
+
+/* ================= data (fictional samples) ================= */
+const NOW=Date.now(),MIN=6e4,H=36e5;
+const PR=['emergency','warning','watch','advisory','information','unknown'];
+const SOURCES=[
+ ['cwa','Central Weather Administration (Taiwan)','https://www.cwa.gov.tw/','ok',2],['usgs','USGS Earthquake Hazards Program','https://earthquake.usgs.gov/','ok',1],
+ ['tmd','กรมอุตุนิยมวิทยา (TMD)','https://www.tmd.go.th/','ok',4],['ddpm','กรมป้องกันและบรรเทาสาธารณภัย (ปภ.)','https://www.disaster.go.th/','ok',6],
+ ['pagasa','PAGASA (Philippines)','https://www.pagasa.dost.gov.ph/','delayed',38],['firms','NASA FIRMS (monitoring)','https://firms.modaps.eosdis.nasa.gov/','ok',9],
+ ['rfs','NSW Rural Fire Service','https://www.rfs.nsw.gov.au/','ok',3],['magma','PVMBG / MAGMA Indonesia','https://magma.esdm.go.id/','ok',12],
+ ['jma','Japan Meteorological Agency','https://www.jma.go.jp/','ok',2],['imd','India Meteorological Department','https://mausam.imd.gov.in/','stale',420],
+ ['ffwc','FFWC Bangladesh','http://www.ffwc.gov.bd/','ok',20],['dhm','DHM Nepal','https://www.dhm.gov.np/','ok',15],
+ ['inam','INAM Mozambique','https://www.inam.gov.mz/','delayed',55],['nchmf','NCHMF Viet Nam','https://nchmf.gov.vn/','ok',6],
+ ['nws','US National Weather Service','https://www.weather.gov/','ok',2],['nhc','NOAA National Hurricane Center','https://www.nhc.noaa.gov/','ok',5],
+ ['eccc','Environment and Climate Change Canada','https://weather.gc.ca/','ok',7],['smn_mx','SMN / CENAPRED México','https://smn.conagua.gob.mx/','ok',11],
+ ['inmet','INMET Brasil','https://portal.inmet.gov.br/','ok',14],['smn_ar','SMN Argentina','https://www.smn.gob.ar/','ok',9],
+ ['meteoalarm','Meteoalarm (EUMETNET)','https://www.meteoalarm.org/','ok',4],['emsc','EMSC','https://www.emsc-csem.org/','ok',2],
+ ['bom','Bureau of Meteorology (Australia)','https://www.bom.gov.au/','ok',6],['kma','Korea Meteorological Administration','https://www.kma.go.kr/','ok',8],
+ ['cma','China Meteorological Administration','https://www.cma.gov.cn/','delayed',47],['gdacs','GDACS (cross-check)','https://www.gdacs.org/','ok',10],
+ ['moh_th','กระทรวงสาธารณสุข','https://www.moph.go.th/','ok',30],['hosp','เว็บไซต์ทางการของโรงพยาบาล','https://www.moph.go.th/','ok',60],
+ ['nsw_health','NSW Health','https://www.health.nsw.gov.au/','ok',45],['sendai','Sendai City','https://www.city.sendai.jp/','ok',25],
+ ['hualien','Hualien County Government','https://www.hl.gov.tw/','ok',18],['bnpb','BNPB Indonesia','https://bnpb.go.id/','ok',22],
+ ['ocd','Office of Civil Defense (Philippines)','https://ocd.gov.ph/','ok',33]
+].map(([id,name,url,health,m])=>({id,name,url,health,last:NOW-m*MIN}));
+const SRC=Object.fromEntries(SOURCES.map(s=>[s.id,s]));
+
+const ALERTS=[
+ {id:'demo-tw-eq-001',src:'cwa',hazard:'earthquake',pr:'information',status:'active',rev:1,lon:121.62,lat:23.98,area:{th:'นอกชายฝั่งฮัวเหลียน ไต้หวัน',en:'Off Hualien, Taiwan'},title:{th:'แผ่นดินไหว M6.1 นอกชายฝั่งฮัวเหลียน',en:'M6.1 earthquake off Hualien'},native:'M 6.1 · depth 15 km',pub:NOW-42*MIN,
+  orig:'[SAMPLE] Earthquake report. Magnitude 6.1, depth 15 km, epicentre 18 km E of Hualien County Hall.',lang:'en',mt:'[ตัวอย่าง] รายงานแผ่นดินไหว ขนาด 6.1 ลึก 15 กม. จุดศูนย์กลางห่างจากที่ว่าการเขตฮัวเหลียนไปทางตะวันออก 18 กม.'},
+ {id:'demo-mm-eq-002',src:'usgs',hazard:'earthquake',pr:'information',status:'active',rev:2,lon:96.1,lat:21.9,area:{th:'ภาคกลางของเมียนมา',en:'Central Myanmar'},title:{th:'แผ่นดินไหว M4.8 ภาคกลางเมียนมา',en:'M4.8 earthquake, central Myanmar'},native:'M 4.8 (mb) · depth 10 km',pub:NOW-3*H,
+  orig:'[SAMPLE] M 4.8 - 24 km NNW of Mandalay, Myanmar. Reviewed: no.',lang:'en',mt:'[ตัวอย่าง] M 4.8 ห่างจากมัณฑะเลย์ 24 กม. ยังไม่ได้ทบทวน'},
+ {id:'demo-th-fl-003',src:'tmd',hazard:'flood',pr:'warning',status:'updated',rev:3,lon:98.98,lat:18.75,area:{th:'เชียงใหม่ ลำพูน',en:'Chiang Mai, Lamphun'},title:{th:'เตือนภัยน้ำท่วมฉับพลันและน้ำป่าไหลหลาก',en:'Flash flood and runoff warning'},native:'ระดับ: เตือนภัย (ฉบับที่ 3)',cap:{severity:'Severe',urgency:'Expected',certainty:'Likely'},pub:NOW-55*MIN,
+  orig:'[ตัวอย่าง] ประกาศเตือนภัย ฉบับที่ 3 ฝนตกหนักถึงหนักมากในพื้นที่ อ.เมือง อ.สารภี จ.เชียงใหม่ และ จ.ลำพูน ขอให้ประชาชนบริเวณที่ลุ่มริมน้ำติดตามประกาศของหน่วยงานท้องถิ่น',lang:'th',
+  poly:[[98.88,18.86],[99.1,18.86],[99.12,18.6],[98.95,18.55],[98.88,18.7]]},
+ {id:'demo-th-st-004',src:'tmd',hazard:'storm',pr:'advisory',status:'active',rev:1,lon:100.55,lat:13.8,area:{th:'กรุงเทพฯ และปริมณฑล',en:'Bangkok metropolitan area'},title:{th:'ฝนฟ้าคะนองและลมกระโชกแรง',en:'Thunderstorms and gusty winds'},native:'ประกาศ: ฝนฟ้าคะนอง',cap:{severity:'Minor',urgency:'Expected',certainty:'Likely'},pub:NOW-70*MIN,
+  orig:'[ตัวอย่าง] ช่วงบ่ายถึงค่ำจะมีฝนฟ้าคะนองร้อยละ 60 ของพื้นที่ กับมีลมกระโชกแรงบางแห่ง',lang:'th'},
+ {id:'demo-ph-tc-005',src:'pagasa',hazard:'cyclone',pr:'watch',status:'active',rev:5,lon:125.4,lat:11.9,area:{th:'ซามาร์ตะวันออก ฟิลิปปินส์',en:'Eastern Samar, Philippines'},title:{th:'สัญญาณลมพายุโซนร้อนระดับ 1',en:'Tropical Cyclone Wind Signal No. 1'},native:'TCWS No. 1',cap:{severity:'Moderate',urgency:'Expected',certainty:'Likely'},pub:NOW-2*H,
+  orig:'[SAMPLE] Tropical Cyclone Wind Signal No. 1 raised over Eastern Samar. Strong winds expected within 36 hours.',lang:'en',mt:'[ตัวอย่าง] ยกสัญญาณลมพายุระดับ 1 เหนือซามาร์ตะวันออก คาดว่าจะมีลมแรงภายใน 36 ชั่วโมง'},
+ {id:'demo-us-wf-006',src:'firms',hazard:'wildfire',pr:'information',status:'active',rev:1,lon:-120.4,lat:38.5,area:{th:'แคลิฟอร์เนีย สหรัฐฯ',en:'California, USA'},title:{th:'จุดความร้อนจากดาวเทียม (เฝ้าติดตาม)',en:'Satellite thermal hotspot (monitoring)'},native:'VIIRS · confidence: nominal',pub:NOW-80*MIN,monitor:true,
+  orig:'[SAMPLE] VIIRS 375 m active fire detection, confidence nominal, FRP 14.2 MW.',lang:'en',mt:'[ตัวอย่าง] ตรวจพบไฟจาก VIIRS ความเชื่อมั่นปกติ กำลังแผ่รังสีไฟ 14.2 MW'},
+ {id:'demo-au-wf-007',src:'rfs',hazard:'wildfire',pr:'emergency',status:'active',rev:4,lon:150.36,lat:-33.7,area:{th:'บลูเมาน์เทนส์ นิวเซาท์เวลส์',en:'Blue Mountains, NSW'},title:{th:'ไฟป่า: ระดับ Emergency Warning',en:'Bush fire: Emergency Warning'},native:'Emergency Warning (Australian Warning System)',cap:{severity:'Extreme',urgency:'Immediate',certainty:'Observed'},pub:NOW-25*MIN,
+  orig:'[SAMPLE] Emergency Warning. Leave now if the path is clear. Follow directions from emergency services.',lang:'en',mt:'[ตัวอย่าง] คำเตือนฉุกเฉิน ออกจากพื้นที่ทันทีหากเส้นทางปลอดภัย ปฏิบัติตามคำแนะนำของหน่วยฉุกเฉิน',
+  poly:[[150.25,-33.62],[150.48,-33.6],[150.5,-33.78],[150.27,-33.8]]},
+ {id:'demo-id-vo-008',src:'magma',hazard:'volcano',pr:'watch',status:'active',rev:2,lon:110.44,lat:-7.54,area:{th:'ชวากลาง อินโดนีเซีย',en:'Central Java, Indonesia'},title:{th:'ภูเขาไฟเมอราปี ระดับ III (Siaga)',en:'Merapi Level III (Siaga)'},native:'Ground alert: Level III (Siaga) · Aviation colour code: ORANGE',pub:NOW-5*H,
+  orig:'[SAMPLE] Status Level III (Siaga). Masyarakat agar tidak melakukan kegiatan di daerah potensi bahaya.',lang:'id',mt:'[ตัวอย่าง] สถานะระดับ III (Siaga) ขอให้ประชาชนงดกิจกรรมในพื้นที่เสี่ยงอันตราย'},
+ {id:'demo-jp-ts-009',src:'jma',hazard:'tsunami',pr:'advisory',status:'active',rev:1,lon:141.3,lat:38.25,area:{th:'ชายฝั่งมิยางิ ญี่ปุ่น',en:'Miyagi coast, Japan'},title:{th:'คำแนะนำเรื่องสึนามิ',en:'Tsunami Advisory'},native:'津波注意報 · 予想高さ 1m',cap:{severity:'Moderate',urgency:'Immediate',certainty:'Likely'},pub:NOW-18*MIN,
+  orig:'[サンプル] 津波注意報を発表しました。海の中や海岸付近は危険です。',lang:'ja',mt:'[ตัวอย่าง] ประกาศคำแนะนำเรื่องสึนามิ การอยู่ในทะเลหรือใกล้ชายฝั่งเป็นอันตราย'},
+ {id:'demo-in-ht-010',src:'imd',hazard:'heat',pr:'warning',status:'active',rev:1,lon:77.2,lat:28.6,area:{th:'เดลี อินเดีย',en:'Delhi, India'},title:{th:'เตือนคลื่นความร้อน (Orange)',en:'Heatwave warning (Orange)'},native:'Colour code: Orange',cap:{severity:'Severe',urgency:'Expected',certainty:'Likely'},pub:NOW-9*H,
+  orig:'[SAMPLE] Orange alert: Heat wave conditions very likely over Delhi.',lang:'en'},
+ {id:'demo-bd-fl-011',src:'ffwc',hazard:'flood',pr:'watch',status:'active',rev:2,lon:89.7,lat:25.1,area:{th:'ลุ่มน้ำพรหมบุตร บังกลาเทศ',en:'Brahmaputra basin, Bangladesh'},title:{th:'ระดับน้ำใกล้ถึงระดับอันตราย',en:'River approaching danger level'},native:'Bahadurabad: 19.42 m (DL 19.50 m)',pub:NOW-4*H,
+  orig:'[SAMPLE] Bahadurabad station water level 19.42 m, danger level 19.50 m, rising trend.',lang:'en',mt:'[ตัวอย่าง] สถานีบาฮาดูราบัด ระดับน้ำ 19.42 ม. ระดับอันตราย 19.50 ม. แนวโน้มเพิ่มขึ้น'},
+ {id:'demo-np-ls-012',src:'dhm',hazard:'landslide',pr:'advisory',status:'active',rev:1,lon:84.0,lat:28.2,area:{th:'กัณฑกี เนปาล',en:'Gandaki, Nepal'},title:{th:'แนะนำเฝ้าระวังดินถล่ม',en:'Landslide advisory'},native:'Advisory',cap:{severity:'Moderate',urgency:'Future',certainty:'Possible'},pub:NOW-14*H,
+  orig:'[SAMPLE] Heavy rainfall may trigger landslides in hilly areas of Gandaki Province.',lang:'en',mt:'[ตัวอย่าง] ฝนตกหนักอาจทำให้เกิดดินถล่มในพื้นที่ภูเขาของจังหวัดกัณฑกี'},
+ {id:'demo-mz-tc-013',src:'inam',hazard:'cyclone',pr:'warning',status:'expired',rev:6,lon:36.9,lat:-17.9,area:{th:'แซมเบเซีย โมซัมบิก',en:'Zambezia, Mozambique'},title:{th:'เตือนพายุไซโคลน (หมดอายุแล้ว)',en:'Cyclone warning (expired)'},native:'Aviso vermelho',cap:{severity:'Severe',urgency:'Past',certainty:'Observed'},pub:NOW-50*H,
+  orig:'[AMOSTRA] Aviso vermelho para a província da Zambézia.',lang:'pt',mt:'[ตัวอย่าง] คำเตือนระดับแดงสำหรับจังหวัดแซมเบเซีย'},
+ {id:'demo-vn-tc-014',src:'nchmf',hazard:'cyclone',pr:'watch',status:'cancelled',rev:3,lon:108.2,lat:16.05,area:{th:'ดานัง เวียดนาม',en:'Da Nang, Viet Nam'},title:{th:'ข่าวพายุ (ยกเลิกแล้ว)',en:'Storm bulletin (cancelled)'},native:'Tin bão — hủy',cap:{severity:'Minor',urgency:'Past',certainty:'Unlikely'},pub:NOW-20*H,
+  orig:'[MẪU] Hủy bản tin bão do áp thấp đã suy yếu.',lang:'vi',mt:'[ตัวอย่าง] ยกเลิกข่าวพายุ เนื่องจากความกดอากาศต่ำอ่อนกำลังลงแล้ว'}
+];
+/* compact extra samples: [src,hazard,pr,lon,lat,areaTh,areaEn,native,minutesAgo,cap?] */
+const EXTRA=[
+ ['nws','storm','warning',-97.5,35.4,'โอคลาโฮมา สหรัฐฯ','Oklahoma, USA','Severe Thunderstorm Warning',35,'Severe/Immediate/Likely'],
+ ['nws','flood','watch',-90.1,30.0,'ลุยเซียนา สหรัฐฯ','Louisiana, USA','Flood Watch',160,'Moderate/Expected/Possible'],
+ ['nws','wildfire','warning',-111.9,33.5,'แอริโซนา สหรัฐฯ','Arizona, USA','Red Flag Warning',240,'Severe/Expected/Likely'],
+ ['nws','heat','advisory',-115.1,36.2,'เนวาดา สหรัฐฯ','Nevada, USA','Heat Advisory',300,'Moderate/Expected/Likely'],
+ ['usgs','earthquake','information',-118.2,34.1,'ลอสแอนเจลิส สหรัฐฯ','Los Angeles, USA','M 3.9 · depth 9 km',50],
+ ['usgs','earthquake','information',-155.3,19.4,'ฮาวาย สหรัฐฯ','Hawaii, USA','M 4.1 · depth 31 km',190],
+ ['nhc','cyclone','warning',-64.8,18.4,'หมู่เกาะเวอร์จิน','Virgin Islands','Hurricane Warning',95,'Extreme/Expected/Likely'],
+ ['nhc','cyclone','watch',-70.0,26.0,'ทะเลแคริบเบียนตอนเหนือ','Northern Caribbean','Tropical Storm Watch',95,'Moderate/Expected/Possible'],
+ ['eccc','wildfire','warning',-120.3,56.2,'บริติชโคลัมเบีย แคนาดา','British Columbia, Canada','Evacuation Alert (local authority)',400,'Severe/Expected/Likely'],
+ ['eccc','storm','advisory',-79.4,43.7,'ออนแทรีโอ แคนาดา','Ontario, Canada','Special weather statement',230,'Minor/Future/Possible'],
+ ['smn_mx','cyclone','warning',-105.2,20.6,'ฮาลิสโก เม็กซิโก','Jalisco, Mexico','Alerta naranja',130,'Severe/Expected/Likely'],
+ ['smn_mx','volcano','watch',-98.62,19.02,'โปโปกาเตเปตล์ เม็กซิโก','Popocatépetl, Mexico','Semáforo Amarillo Fase 2',600],
+ ['gdacs','earthquake','information',-78.5,-1.5,'เอกวาดอร์','Ecuador','M 5.2 · GDACS green',260],
+ ['inmet','flood','warning',-51.2,-30.0,'รีโอกรันดีดูซูล บราซิล','Rio Grande do Sul, Brazil','Alerta: acumulado de chuva',180,'Severe/Expected/Likely'],
+ ['inmet','heat','advisory',-47.9,-15.8,'บราซิเลีย บราซิล','Brasília, Brazil','Onda de calor (amarelo)',500,'Moderate/Expected/Likely'],
+ ['smn_ar','storm','advisory',-58.4,-34.6,'บัวโนสไอเรส อาร์เจนตินา','Buenos Aires, Argentina','Alerta amarilla por tormentas',140,'Moderate/Expected/Possible'],
+ ['gdacs','earthquake','information',-71.5,-33.0,'วัลปาไรโซ ชิลี','Valparaíso, Chile','M 4.9',720],
+ ['meteoalarm','storm','advisory',2.35,48.86,'ปารีส ฝรั่งเศส','Paris, France','Yellow: thunderstorms',150,'Moderate/Expected/Likely'],
+ ['meteoalarm','flood','warning',12.3,45.4,'เวเนโต อิตาลี','Veneto, Italy','Orange: flooding',210,'Severe/Expected/Likely'],
+ ['meteoalarm','wildfire','watch',23.7,38.0,'แอตติกา กรีซ','Attica, Greece','Fire risk: high',330,'Moderate/Future/Possible'],
+ ['meteoalarm','heat','warning',-3.7,40.4,'มาดริด สเปน','Madrid, Spain','Orange: high temperatures',280,'Severe/Expected/Likely'],
+ ['emsc','earthquake','information',28.97,41.0,'อิสตันบูล ตุรกี','Istanbul, Türkiye','M 4.3 · depth 11 km',65],
+ ['emsc','earthquake','information',14.2,40.8,'คัมปีฟเลเกรย์ อิตาลี','Campi Flegrei, Italy','Md 3.4',380],
+ ['meteoalarm','storm','advisory',-0.1,51.5,'ลอนดอน สหราชอาณาจักร','London, UK','Yellow: wind',120,'Minor/Expected/Likely'],
+ ['gdacs','flood','watch',7.5,9.1,'ไนจีเรียตอนกลาง','Central Nigeria','GDACS orange (flood)',900],
+ ['gdacs','cyclone','watch',47.5,-18.9,'มาดากัสการ์','Madagascar','GDACS orange (TC)',350],
+ ['gdacs','flood','advisory',32.6,0.3,'ยูกันดา','Uganda','GDACS green (flood)',1100],
+ ['gdacs','heat','advisory',31.2,30.0,'ไคโร อียิปต์','Cairo, Egypt','Heat (cross-check)',800],
+ ['kma','heat','advisory',126.98,37.57,'โซล เกาหลีใต้','Seoul, South Korea','폭염주의보',260,'Moderate/Expected/Likely'],
+ ['cma','storm','warning',113.3,23.1,'กว่างโจว จีน','Guangzhou, China','暴雨橙色预警',90,'Severe/Expected/Likely'],
+ ['cma','earthquake','information',103.0,30.0,'เสฉวน จีน','Sichuan, China','M 4.6',300],
+ ['jma','earthquake','information',139.7,35.7,'โตเกียว ญี่ปุ่น','Tokyo, Japan','M 4.0 · 震度3',45],
+ ['ddpm','flood','watch',100.6,14.35,'พระนครศรีอยุธยา','Phra Nakhon Si Ayutthaya','เฝ้าระวังระดับน้ำเจ้าพระยา',200,'Moderate/Expected/Possible'],
+ ['ddpm','landslide','advisory',98.5,8.5,'พังงา','Phang Nga','เฝ้าระวังดินโคลนถล่ม',260,'Moderate/Future/Possible'],
+ ['bnpb','flood','warning',106.85,-6.2,'จาการ์ตา อินโดนีเซีย','Jakarta, Indonesia','Siaga 2',110,'Severe/Expected/Likely'],
+ ['bom','wildfire','advisory',115.86,-31.95,'เพิร์ท ออสเตรเลีย','Perth, Australia','Advice (AWS)',190,'Moderate/Expected/Possible'],
+ ['bom','cyclone','watch',146.8,-19.3,'ควีนส์แลนด์เหนือ','North Queensland','Cyclone Watch',240,'Moderate/Expected/Possible'],
+ ['bom','heat','warning',138.6,-34.9,'แอดิเลด ออสเตรเลีย','Adelaide, Australia','Severe heatwave',420,'Severe/Expected/Likely'],
+ ['gdacs','cyclone','watch',178.4,-18.1,'ฟิจิ','Fiji','GDACS orange (TC)',520]
+];
+EXTRA.forEach((e,i)=>{const [src,hz,pr,lon,lat,ath,aen,native,m,cap]=e;const c=cap?cap.split('/'):null;
+ ALERTS.push({id:'demo-x'+String(i+1).padStart(3,'0'),src,hazard:hz,pr,status:'active',rev:1,lon,lat,area:{th:ath,en:aen},
+  title:{th:CAT.th.hz[hz]+' · '+ath,en:CAT.en.hz[hz]+' · '+aen},native,cap:c?{severity:c[0],urgency:c[1],certainty:c[2]}:null,pub:NOW-m*MIN,
+  orig:'[SAMPLE] '+native+' — '+aen+'.',lang:'en',mt:'[ตัวอย่าง] '+native+' — '+ath,cross:src==='gdacs',monitor:false})});
+const EXCLUDED_TEST=1;
+
+/* official facilities (separate domain; sample records) */
+const FAC=[
+ // hospitals (real public hospitals; coordinates approximate; status never inferred)
+ {id:'fac-th-h-001',cat:'hospital',name:{th:'โรงพยาบาลศิริราช',en:'Siriraj Hospital'},auth:'hosp',lon:100.4856,lat:13.759,prec:'approximate',status:'unknown',services:{th:'ห้องฉุกเฉิน',en:'Emergency department'}},
+ {id:'fac-th-h-002',cat:'hospital',name:{th:'โรงพยาบาลรามาธิบดี',en:'Ramathibodi Hospital'},auth:'hosp',lon:100.5265,lat:13.766,prec:'approximate',status:'unknown',services:{th:'ห้องฉุกเฉิน',en:'Emergency department'}},
+ {id:'fac-th-h-003',cat:'hospital',name:{th:'โรงพยาบาลจุฬาลงกรณ์',en:'King Chulalongkorn Memorial Hospital'},auth:'hosp',lon:100.5355,lat:13.7327,prec:'approximate',status:'unknown'},
+ {id:'fac-th-h-004',cat:'hospital',name:{th:'โรงพยาบาลราชวิถี',en:'Rajavithi Hospital'},auth:'moh_th',lon:100.5375,lat:13.765,prec:'approximate',status:'unknown'},
+ {id:'fac-th-h-005',cat:'hospital',name:{th:'โรงพยาบาลมหาราชนครเชียงใหม่',en:'Maharaj Nakorn Chiang Mai Hospital'},auth:'hosp',lon:98.9735,lat:18.7895,prec:'approximate',status:'unknown'},
+ {id:'fac-th-h-006',cat:'hospital',name:{th:'โรงพยาบาลนครพิงค์',en:'Nakornping Hospital'},auth:'moh_th',lon:98.9711,lat:18.8516,prec:'approximate',status:'unknown'},
+ {id:'fac-th-h-007',cat:'hospital',name:{th:'โรงพยาบาลลำพูน',en:'Lamphun Hospital'},auth:'moh_th',lon:99.011,lat:18.58,prec:'approximate',status:'unknown'},
+ {id:'fac-th-h-008',cat:'hospital',name:{th:'โรงพยาบาลพระนครศรีอยุธยา',en:'Phra Nakhon Si Ayutthaya Hospital'},auth:'moh_th',lon:100.567,lat:14.353,prec:'approximate',status:'unknown'},
+ {id:'fac-tw-h-009',cat:'hospital',name:{th:'Hualien Tzu Chi Hospital',en:'Hualien Tzu Chi Hospital'},auth:'hualien',lon:121.596,lat:23.995,prec:'approximate',status:'unknown'},
+ {id:'fac-jp-h-010',cat:'hospital',name:{th:'Tohoku University Hospital',en:'Tohoku University Hospital'},auth:'sendai',lon:140.856,lat:38.271,prec:'approximate',status:'unknown'},
+ {id:'fac-au-h-011',cat:'hospital',name:{th:'Blue Mountains District ANZAC Memorial Hospital',en:'Blue Mountains District ANZAC Memorial Hospital'},auth:'nsw_health',lon:150.311,lat:-33.713,prec:'approximate',status:'unknown'},
+ {id:'fac-au-h-012',cat:'hospital',name:{th:'Nepean Hospital',en:'Nepean Hospital'},auth:'nsw_health',lon:150.714,lat:-33.76,prec:'approximate',status:'unknown'},
+ {id:'fac-id-h-013',cat:'hospital',name:{th:'RSUP Dr. Sardjito',en:'Dr. Sardjito General Hospital'},auth:'bnpb',lon:110.374,lat:-7.768,prec:'approximate',status:'unknown'},
+ {id:'fac-ph-h-014',cat:'hospital',name:{th:'Eastern Samar Provincial Hospital',en:'Eastern Samar Provincial Hospital'},auth:'ocd',lon:125.433,lat:11.607,prec:'approximate',status:'unknown'},
+ // shelters (fictional sample records)
+ {id:'fac-th-s-101',cat:'official_shelter',name:{th:'ศูนย์พักพิงชั่วคราว อ.สารภี (ตัวอย่าง)',en:'Saraphi temporary shelter (sample)'},auth:'ddpm',lon:99.035,lat:18.705,prec:'exact',status:'open',statusAt:NOW-40*MIN,capacity:{th:'รองรับ 300 คน (ใช้ไป 180)',en:'300 people (180 used)'},scope:{th:'อุทกภัย',en:'Flood'}},
+ {id:'fac-th-s-102',cat:'official_shelter',name:{th:'ศูนย์พักพิงชั่วคราว อ.เมืองลำพูน (ตัวอย่าง)',en:'Mueang Lamphun temporary shelter (sample)'},auth:'ddpm',lon:99.02,lat:18.59,prec:'exact',status:'full',statusAt:NOW-25*MIN,capacity:{th:'รองรับ 200 คน (เต็ม)',en:'200 people (full)'},scope:{th:'อุทกภัย',en:'Flood'}},
+ {id:'fac-th-s-103',cat:'official_shelter',name:{th:'ศูนย์พักพิง เทศบาลนครเชียงใหม่ (ตัวอย่าง)',en:'Chiang Mai municipal shelter (sample)'},auth:'ddpm',lon:98.995,lat:18.79,prec:'exact',status:'not_yet_open',statusAt:NOW-60*MIN,scope:{th:'อุทกภัย',en:'Flood'}},
+ {id:'fac-th-s-104',cat:'official_shelter',name:{th:'ศูนย์พักพิง อ.พระนครศรีอยุธยา (ตัวอย่าง)',en:'Ayutthaya district shelter (sample)'},auth:'ddpm',lon:100.58,lat:14.36,prec:'exact',status:'unknown'},
+ {id:'fac-au-s-105',cat:'official_shelter',name:{th:'Katoomba Evacuation Centre (sample)',en:'Katoomba Evacuation Centre (sample)'},auth:'rfs',lon:150.312,lat:-33.705,prec:'exact',status:'open',statusAt:NOW-15*MIN,services:{th:'ลงทะเบียน อาหาร น้ำ',en:'Registration, food, water'}},
+ {id:'fac-au-s-106',cat:'official_shelter',name:{th:'Springwood Evacuation Centre (sample)',en:'Springwood Evacuation Centre (sample)'},auth:'rfs',lon:150.56,lat:-33.698,prec:'exact',status:'unknown'},
+ {id:'fac-tw-s-107',cat:'official_shelter',name:{th:'Hualien designated shelter (sample)',en:'Hualien designated shelter (sample)'},auth:'hualien',lon:121.605,lat:23.982,prec:'exact',status:'open',statusAt:NOW-35*MIN},
+ {id:'fac-ph-s-108',cat:'official_shelter',name:{th:'Borongan evacuation center (sample)',en:'Borongan evacuation center (sample)'},auth:'ocd',lon:125.43,lat:11.6,prec:'exact',status:'open',statusAt:NOW-3*H},
+ {id:'fac-id-s-109',cat:'official_shelter',name:{th:'Barak pengungsian Glagaharjo (sample)',en:'Glagaharjo evacuation barrack (sample)'},auth:'bnpb',lon:110.47,lat:-7.62,prec:'exact',status:'open',statusAt:NOW-6*H,scope:{th:'ภูเขาไฟ',en:'Volcano'}},
+ {id:'fac-th-s-110',cat:'official_shelter',name:{th:'ศูนย์พักพิง เขตบางเขน (ตัวอย่าง)',en:'Bang Khen shelter (sample)'},auth:'ddpm',lon:100.6,lat:13.87,prec:'approximate',status:'unknown'},
+ // designated safe locations
+ {id:'fac-jp-d-201',cat:'designated_safe_location',name:{th:'อาคารหลบภัยสึนามิ (ตัวอย่าง)',en:'Tsunami evacuation building (sample)'},auth:'sendai',lon:140.975,lat:38.25,prec:'exact',status:'open',statusAt:NOW-20*MIN,scope:{th:'สึนามิ · จนกว่าจะยกเลิกคำแนะนำ',en:'Tsunami · until advisory is lifted'}},
+ {id:'fac-th-d-202',cat:'designated_safe_location',name:{th:'จุดปลอดภัยที่กำหนด: ที่สูง อ.แม่ริม (ตัวอย่าง)',en:'Designated high ground, Mae Rim (sample)'},auth:'ddpm',lon:98.94,lat:18.9,prec:'exact',status:'open',statusAt:NOW-50*MIN,scope:{th:'อุทกภัย · ถึง 18:00 น. วันนี้',en:'Flood · until 18:00 today'}},
+ // community services
+ {id:'fac-th-c-301',cat:'community_service',name:{th:'จุดแจกจ่ายถุงยังชีพ อ.สารภี (ตัวอย่าง)',en:'Relief distribution point, Saraphi (sample)'},auth:'ddpm',lon:99.045,lat:18.715,prec:'exact',status:'open',statusAt:NOW-30*MIN,hours:{th:'08:00–17:00',en:'08:00–17:00'}},
+ {id:'fac-tw-c-302',cat:'community_service',name:{th:'Hualien service center (sample)',en:'Hualien service center (sample)'},auth:'hualien',lon:121.6,lat:23.99,prec:'exact',status:'unknown'},
+ {id:'fac-in-c-303',cat:'community_service',name:{th:'Cooling centre (sample)',en:'Cooling centre (sample)'},auth:'imd',lon:77.21,lat:28.63,prec:'approximate',status:'unknown'},
+ {id:'fac-bd-c-304',cat:'community_service',name:{th:'Relief point (sample)',en:'Relief point (sample)'},auth:'ffwc',lon:89.75,lat:25.0,prec:'approximate',status:'unknown'}
+];
+FAC.forEach(f=>{f.fetched=SRC[f.auth].last});
+const FAC_CATS=['hospital','official_shelter','designated_safe_location','community_service'];
+const FAC_COLOR={hospital:'#7c3aed',official_shelter:'#2563eb',designated_safe_location:'#0f766e',community_service:'#0891b2'};
+
+const PLACES=[
+ ['ประเทศไทย','Thailand',100.9,15.5,5],['กรุงเทพมหานคร','Bangkok',100.53,13.76,60],['เชียงใหม่','Chiang Mai',98.98,18.75,40],['ลำพูน','Lamphun',99.01,18.58,45],['อยุธยา','Ayutthaya',100.57,14.35,60],['ภูเก็ต','Phuket',98.39,7.88,30],['พังงา','Phang Nga',98.5,8.5,30],
+ ['ญี่ปุ่น','Japan',138,37,5],['โตเกียว','Tokyo',139.69,35.69,40],['เซ็นได','Sendai',140.9,38.26,40],['ไต้หวัน','Taiwan',121,23.7,8],['ฮัวเหลียน','Hualien',121.6,23.99,60],['ฟิลิปปินส์','Philippines',122,12,5],['อินโดนีเซีย','Indonesia',117,-2,4],['ยogyakarta','Yogyakarta',110.4,-7.7,30],
+ ['เมียนมา','Myanmar',96,21,5],['เวียดนาม','Viet Nam',106,16,5],['ลาว','Laos',103,18.5,6],['กัมพูชา','Cambodia',105,12.5,6],['มาเลเซีย','Malaysia',109,4,5],['จีน','China',104,35,3],['เกาหลีใต้','South Korea',127.8,36.3,8],
+ ['อินเดีย','India',79,22,3.5],['บังกลาเทศ','Bangladesh',90,23.7,6],['เนปาล','Nepal',84,28.3,6],['ออสเตรเลีย','Australia',134,-26,3],['ซิดนีย์','Sydney',151.0,-33.8,30],
+ ['สหรัฐอเมริกา','United States',-98,39,3],['แคลิฟอร์เนีย','California',-119.5,37.2,6],['แคนาดา','Canada',-100,58,2.5],['เม็กซิโก','Mexico',-102,23,4],['บราซิล','Brazil',-52,-12,3],['อาร์เจนตินา','Argentina',-64,-36,3],
+ ['ยุโรป','Europe',12,50,3.5],['อิตาลี','Italy',12.5,42.5,7],['ตุรกี','Türkiye',35,39,6],['โมซัมบิก','Mozambique',35.5,-18,5]
+].map(p=>({th:p[0],en:p[1],lon:p[2],lat:p[3],zoom:p[4]}));
+PLACES.find(p=>p.en==='Yogyakarta').th='ยอกยาการ์ตา';
+
+/* ================= icons ================= */
+const GLYPH={
+ earthquake:'<path d="M2 12h4l2-6 4 12 3-9 2 3h5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>',
+ flood:'<path d="M2 15c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 5-2M2 9.5c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 5-2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+ cyclone:'<circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M4 9c2-5 9-6 13-3M20 15c-2 5-9 6-13 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+ wildfire:'<path d="M12 3c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4 2-7 2 1 3 3 3 3s1-4 1-7z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>',
+ volcano:'<path d="M3 20l6-10h6l6 10zM10 6l-1-3M14 6l1-3M12 6V2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>',
+ tsunami:'<path d="M2 18c4 0 5-10 12-10 3 0 5 2 5 4-2-1-5 0-5 3 0 2 2 3 4 3h4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>',
+ heat:'<path d="M12 3v11M9 14.5a3 3 0 1 0 6 0V5a3 3 0 0 0-6 0z" fill="none" stroke="currentColor" stroke-width="2.2"/>',
+ landslide:'<path d="M3 20h18L8 6zM14 9l3-2M16 13l3-1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>',
+ storm:'<path d="M7 16a4 4 0 0 1-.5-8A5.5 5.5 0 0 1 17 8.5a3.5 3.5 0 0 1 0 7.5M12 13l-2 4h3l-2 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>',
+ hospital:'<path d="M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z" fill="currentColor"/>',
+ official_shelter:'<path d="M3 11l9-7 9 7M6 9.5V20h12V9.5M10 20v-5h4v5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>',
+ designated_safe_location:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M8.5 12l2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+ community_service:'<circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="16.5" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M2.5 20c0-3.5 2.5-6 5.5-6s5.5 2.5 5.5 6M14 14.5c3.5-.5 7 1.5 7 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'
+};
+const glyph=(k,s=18)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true">${GLYPH[k]}</svg>`;
+const PRC={emergency:'#c5221f',warning:'#e8710a',watch:'#e3a008',advisory:'#1967d2',information:'#5f6b7a',unknown:'#9aa3ae'};
+const uri=svg=>'image://data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+const pinCache={};
+function alertPin(hz,pr,dim){const k=hz+pr+(dim?1:0);if(pinCache[k])return pinCache[k];
+ const c=PRC[pr];const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="84" viewBox="0 0 32 42"><path d="M16 40.5C16 40.5 3 26.5 3 16A13 13 0 0 1 29 16C29 26.5 16 40.5 16 40.5Z" fill="${c}" fill-opacity="${dim?.5:1}" stroke="#fff" stroke-width="2"/><g transform="translate(7,7) scale(.75)" color="#fff">${GLYPH[hz]}</g></svg>`;
+ return pinCache[k]=uri(svg)}
+function facPin(cat){const k='f'+cat;if(pinCache[k])return pinCache[k];
+ const c=FAC_COLOR[cat];const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="60" height="68" viewBox="0 0 30 34"><path d="M6 2h18a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4h-5l-4 5-4-5H6a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z" fill="#fff"/><rect x="4" y="4" width="22" height="22" rx="3" fill="${c}"/><g transform="translate(7,7) scale(.667)" color="#fff">${GLYPH[cat]}</g></svg>`;
+ return pinCache[k]=uri(svg)}
+
+/* ================= state ================= */
+const HZ=['earthquake','flood','cyclone','storm','wildfire','volcano','tsunami','heat','landslide'];
+const STS=['active','updated','expired','cancelled'];const TRS={h6:6*H,h24:24*H,d7:7*24*H};
+const S={sel:null,hz:new Set(),st:new Set(),tr:'d7',openedByApp:false,layers:JSON.parse(store.get('wda.layers','null')||'null')||{alerts:true,hospital:true,official_shelter:true,designated_safe_location:true,community_service:true},style:store.get('wda.style','simple'),me:null};
+const fmtLocale=()=>LANG==='th'?'th-TH':'en-GB';
+function fmtTime(ts){const d=new Date(ts);return new Intl.DateTimeFormat(fmtLocale(),{dateStyle:'medium',timeStyle:'short'}).format(d)+' · '+d.toISOString().slice(11,16)+' UTC'}
+function ago(ts){const s=(Date.now()-ts)/1000;if(s<60)return T.ago.s;if(s<3600)return Math.floor(s/60)+' '+T.ago.m;if(s<86400)return Math.floor(s/3600)+' '+T.ago.h;return Math.floor(s/86400)+' '+T.ago.d}
+function alertsF(){if(!S.layers.alerts)return[];const lim=Date.now()-TRS[S.tr];return ALERTS.filter(a=>(!S.hz.size||S.hz.has(a.hazard))&&(!S.st.size||S.st.has(a.status))&&a.pub>=lim).sort((a,b)=>PR.indexOf(a.pr)-PR.indexOf(b.pr)||b.pub-a.pub)}
+function facsF(){return FAC.filter(f=>S.layers[f.cat])}
+const byId=id=>ALERTS.find(a=>a.id===id)||FAC.find(f=>f.id===id);
+let SEQ=58214,lastSync=NOW;
+
+/* ================= map ================= */
+const STYLES={
+ simple:{sea:'#b9dcf5',land:'#eef0e6',border:'#c4c8bd',label:'#5f6b7a',special:{}},
+ terrain:{sea:'#24578c',land:'#a9c47f',border:'#7f9b62',label:'#1e2b16',special:{'Antarctica':'#f4f7fa','Greenland':'#f1f5f9','Algeria':'#e2d29d','Libya':'#e2d29d','Egypt':'#e2d29d','Mali':'#e2d29d','Niger':'#e2d29d','Chad':'#e2d29d','Mauritania':'#e2d29d','W. Sahara':'#e2d29d','Sudan':'#dccb94','Saudi Arabia':'#e2d29d','Oman':'#dccb94','Yemen':'#dccb94','United Arab Emirates':'#e2d29d','Iran':'#d6c58e','Afghanistan':'#cdbf8c','Pakistan':'#cdbf8c','Turkmenistan':'#d6c58e','Uzbekistan':'#d6c58e','Kazakhstan':'#c9c58a','Mongolia':'#c9c58a','Namibia':'#d6c58e','Botswana':'#ccc28a','Australia':'#cdb982','Iraq':'#d6c58e','Syria':'#d6c58e','Jordan':'#d6c58e','Tunisia':'#cdbf8c','Morocco':'#c9c58a'}}
+};
+const TH_NAMES={'Thailand':'ไทย','Myanmar':'เมียนมา','Laos':'ลาว','Lao PDR':'ลาว','Cambodia':'กัมพูชา','Vietnam':'เวียดนาม','Malaysia':'มาเลเซีย','Indonesia':'อินโดนีเซีย','Philippines':'ฟิลิปปินส์','China':'จีน','Japan':'ญี่ปุ่น','Korea':'เกาหลีใต้','Dem. Rep. Korea':'เกาหลีเหนือ','India':'อินเดีย','Bangladesh':'บังกลาเทศ','Nepal':'เนปาล','Australia':'ออสเตรเลีย','New Zealand':'นิวซีแลนด์','United States':'สหรัฐอเมริกา','Canada':'แคนาดา','Mexico':'เม็กซิโก','Brazil':'บราซิล','Argentina':'อาร์เจนตินา','Chile':'ชิลี','Peru':'เปรู','Colombia':'โคลอมเบีย','Russia':'รัสเซีย','France':'ฝรั่งเศส','Germany':'เยอรมนี','Italy':'อิตาลี','Spain':'สเปน','United Kingdom':'สหราชอาณาจักร','Turkey':'ตุรกี','Egypt':'อียิปต์','Saudi Arabia':'ซาอุดีอาระเบีย','Iran':'อิหร่าน','Pakistan':'ปากีสถาน','Mongolia':'มองโกเลีย','Kazakhstan':'คาซัคสถาน','South Africa':'แอฟริกาใต้','Nigeria':'ไนจีเรีย','Madagascar':'มาดากัสการ์','Mozambique':'โมซัมบิก','Greenland':'กรีนแลนด์','Antarctica':'แอนตาร์กติกา','Greece':'กรีซ','Ukraine':'ยูเครน','Poland':'โปแลนด์','Sri Lanka':'ศรีลังกา','Papua New Guinea':'ปาปัวนิวกินี','Algeria':'แอลจีเรีย','Libya':'ลิเบีย','Sudan':'ซูดาน','Ethiopia':'เอธิโอเปีย','Kenya':'เคนยา','Dem. Rep. Congo':'คองโก','Angola':'แองโกลา','Venezuela':'เวเนซุเอลา','Bolivia':'โบลิเวีย','Uganda':'ยูกันดา','Fiji':'ฟิจิ'};
+let chart=null;const WORLD={center:[20,22],zoom:1.2};let labelsOn=null;
+function geoOpt(){const st=STYLES[S.style];return{map:'world',roam:true,center:WORLD.center,zoom:WORLD.zoom,scaleLimit:{min:1,max:400},selectedMode:false,
+ itemStyle:{areaColor:st.land,borderColor:st.border,borderWidth:.6},emphasis:{itemStyle:{areaColor:st.land},label:{show:false}},
+ label:{show:false,color:st.label,fontSize:11,fontFamily:'Inter, Noto Sans Thai',formatter:p=>LANG==='th'?(TH_NAMES[p.name]||p.name):p.name},
+ regions:Object.entries(st.special).map(([name,c])=>({name,itemStyle:{areaColor:c},emphasis:{itemStyle:{areaColor:c}}}))}}
+function view(){if(!chart)return{...WORLD};const g=chart.getOption().geo[0];return{center:g.center||WORLD.center,zoom:g.zoom||WORLD.zoom}}
+function px(lon,lat){return chart.convertToPixel({geoIndex:0},[lon,lat])}
+
+function gridCluster(items,cell){const b=new Map();items.forEach(it=>{const p=px(it.lon,it.lat);if(!p)return;const k=Math.floor(p[0]/cell)+':'+Math.floor(p[1]/cell);(b.get(k)||b.set(k,[]).get(k)).push(it)});return[...b.values()]}
+function buildSeries(){
+ const sel=S.sel&&byId(S.sel);const z=view().zoom;
+ const al=alertsF();const fa=facsF();
+ // polygon of selected alert
+ const poly=sel&&sel.poly&&al.includes(sel);const pc=poly?PRC[sel.pr]:'#000';
+ const s0={type:'custom',coordinateSystem:'geo',silent:true,z:2,data:poly?[0]:[],renderItem:(p,api)=>({type:'polygon',shape:{points:sel.poly.map(pt=>api.coord(pt))},style:{fill:hexA(pc,.18),stroke:pc,lineWidth:2,lineDash:[6,4]}})};
+ // facility ground circles at close zoom
+ const close=z>=120;
+ const s1={type:'scatter',coordinateSystem:'geo',silent:true,z:3,data:close?fa.filter(f=>f.prec==='exact').map(f=>({value:[f.lon,f.lat],symbol:'circle',symbolSize:Math.min(90,z/3),itemStyle:{color:hexA(FAC_COLOR[f.cat],.18),borderColor:FAC_COLOR[f.cat],borderWidth:1.5}})):[]};
+ // facilities: cluster per category, keep separate from alerts
+ const fdata=[];
+ FAC_CATS.forEach(cat=>{const items=fa.filter(f=>f.cat===cat&&f.id!==S.sel);gridCluster(items,z>=30?0.0001:44).forEach(g=>{
+  if(g.length===1||z>=30){g.forEach(f=>fdata.push({kind:'fac',id:f.id,name:L(f.name),value:[f.lon,f.lat],symbol:facPin(cat),symbolSize:[28,32],symbolOffset:[0,'-50%']}))}
+  else{const lon=avg(g,'lon'),lat=avg(g,'lat');fdata.push({kind:'fcluster',value:[lon,lat],symbol:'roundRect',symbolSize:28,itemStyle:{color:FAC_COLOR[cat],borderColor:'#fff',borderWidth:2},label:{show:true,position:'inside',formatter:String(g.length),color:'#fff',fontWeight:700,fontSize:12}})}})});
+ if(sel&&sel.cat&&S.layers[sel.cat])fdata.push({kind:'fac',id:sel.id,value:[sel.lon,sel.lat],symbol:facPin(sel.cat),symbolSize:[36,41],symbolOffset:[0,'-50%'],z:10});
+ const s2={type:'scatter',coordinateSystem:'geo',z:4,data:fdata,cursor:'pointer',emphasis:{label:{show:false}},animation:false};
+ // alerts with grid clustering
+ const adata=[];
+ gridCluster(al.filter(a=>a.id!==S.sel),z>=40?0.0001:48).forEach(g=>{
+  if(g.length===1){const a=g[0];const dim=a.status==='expired'||a.status==='cancelled';adata.push({kind:'alert',id:a.id,name:L(a.title),value:[a.lon,a.lat],symbol:alertPin(a.hazard,a.pr,dim),symbolSize:a.pr==='emergency'?[34,45]:[29,38],symbolOffset:[0,'-50%']})}
+  else{const top=g.reduce((m,a)=>PR.indexOf(a.pr)<PR.indexOf(m.pr)?a:m,g[0]);adata.push({kind:'acluster',value:[avg(g,'lon'),avg(g,'lat')],symbol:'circle',symbolSize:Math.min(50,28+g.length*2),itemStyle:{color:PRC[top.pr],borderColor:'#fff',borderWidth:2.5,shadowBlur:6,shadowColor:'rgba(0,0,0,.25)'},label:{show:true,position:'inside',formatter:String(g.length),color:'#fff',fontWeight:700,fontSize:13}})}});
+ if(sel&&!sel.cat&&al.includes(sel))adata.push({kind:'alert',id:sel.id,value:[sel.lon,sel.lat],symbol:alertPin(sel.hazard,sel.pr,false),symbolSize:[40,53],symbolOffset:[0,'-50%']});
+ const s3={type:'scatter',coordinateSystem:'geo',z:6,data:adata,cursor:'pointer',emphasis:{label:{show:false}},animation:false};
+ // user location
+ const s4={type:'scatter',coordinateSystem:'geo',silent:true,z:8,data:S.me?[{value:S.me,symbol:'circle',symbolSize:64,itemStyle:{color:'rgba(26,115,232,.18)'}},{value:S.me,symbol:'circle',symbolSize:16,itemStyle:{color:'#1a73e8',borderColor:'#fff',borderWidth:3,shadowBlur:4,shadowColor:'rgba(0,0,0,.3)'}}]:[]};
+ return[s0,s1,s2,s3,s4];
+}
+const avg=(g,k)=>g.reduce((s,x)=>s+x[k],0)/g.length;
+function hexA(h,a){h=h.replace('#','');const n=parseInt(h,16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+function initMap(){
+ if(CONFIG.GOOGLE_MAPS_API_KEY){GM.load().then(()=>GM.init()).catch(e=>{console.warn('Google Maps failed, using fallback',e);GM.on=false;initEcharts()});return}
+ initEcharts();
+}
+function initEcharts(){
+ if(!window.echarts||!echarts.getMap||!echarts.getMap('world')){$('maploading').textContent=T.mapFail;openList(true);return}
+ $('maploading').remove();
+ chart=echarts.init($('map'),null,{renderer:'canvas'});
+ chart.setOption({backgroundColor:'transparent',animation:false,tooltip:{show:false},geo:geoOpt(),series:buildSeries()});
+ applyStyle(true);
+ chart.on('click',p=>{const d=p.data;if(!d)return;
+  if(d.kind==='alert'||d.kind==='fac')openItem(d.id,true);
+  else if(d.kind==='acluster'||d.kind==='fcluster'){const v=view();flyTo(d.value[0],d.value[1],Math.min(400,v.zoom*2.6))}});
+ chart.on('georoam',debounce(onRoam,90));
+ new ResizeObserver(debounce(()=>{chart.resize();redraw()},60)).observe($('map'));
+ redraw();
+}
+function onRoam(){const z=view().zoom;const want=z>=2.4;if(want!==labelsOn){labelsOn=want;chart.setOption({geo:{label:{show:want}}})}redraw()}
+function redraw(){if(GM.on){GM.render();checkEmpty();if($('listPanel').classList.contains('open'))renderList();return}if(!chart)return;chart.setOption({series:buildSeries()});checkEmpty();if($('listPanel').classList.contains('open'))renderList()}
+function flyTo(lon,lat,zoom){if(GM.on){GM.map.setCenter({lat,lng:lon});GM.map.setZoom(ez2gz(zoom));return}if(!chart)return;chart.setOption({geo:{center:[lon,lat],zoom}});onRoam()}
+function zoomBy(f){if(GM.on){GM.map.setZoom(GM.map.getZoom()+(f>1?1:-1));return}if(!chart)return;const v=view();chart.setOption({geo:{zoom:Math.max(1,Math.min(400,v.zoom*f))}});onRoam()}
+function inView(o){if(GM.on){const b=GM.map.getBounds();return b?b.contains({lat:o.lat,lng:o.lon}):true}if(!chart)return true;const p=px(o.lon,o.lat);if(!p)return false;return p[0]>=0&&p[0]<=chart.getWidth()&&p[1]>=0&&p[1]<=chart.getHeight()}
+function checkEmpty(){const n=$('nomark');if((!chart&&!GM.on)||!S.layers.alerts||S.sel){n.hidden=true;return}const v=alertsF().some(inView);n.hidden=v;n.textContent=T.noMarker}
+function debounce(f,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}}
+function applyStyle(skipSet){const st=STYLES[S.style];$('mapwrap').style.background=GM.on?'#e5e3df':st.sea;if(GM.on){const t=S.style==='terrain'?T.styleSimple:T.styleSat;$('styleBtn').setAttribute('aria-pressed',S.style==='terrain');$('styleBtn').setAttribute('aria-label',t);$('styleBtn').title=t;return}$('styleBtn').setAttribute('aria-pressed',S.style==='terrain');$('styleBtn').setAttribute('aria-label',S.style==='terrain'?T.styleSimple:T.styleTerrain);$('styleBtn').title=S.style==='terrain'?T.styleSimple:T.styleTerrain;
+ if(chart&&!skipSet){const g=geoOpt();chart.setOption({geo:{itemStyle:g.itemStyle,emphasis:g.emphasis,label:{color:st.label},regions:g.regions}})}}
+$('styleBtn').onclick=()=>{S.style=S.style==='simple'?'terrain':'simple';store.set('wda.style',S.style);if(GM.on){GM.map.setMapTypeId(S.style==='terrain'?'hybrid':'roadmap');applyStyle(true);return}if(chart){const c=view();chart.setOption({geo:Object.assign(geoOpt(),{center:c.center,zoom:c.zoom,label:Object.assign(geoOpt().label,{show:!!labelsOn})})},{notMerge:false});}applyStyle(true);redraw()};
+
+
+/* ================= Google Maps engine ================= */
+const ez2gz=ez=>Math.max(2,Math.min(19,Math.round(2.2+Math.log2(Math.max(1,ez))*1.6)));
+const imgOf=u=>{const i=document.createElement('img');i.src=u.replace(/^image:\/\//,'');i.alt='';i.draggable=false;return i};
+const GM={on:false,loading:false,map:null,mk:[],clusterers:[],poly:null,circles:[],me:[],
+ load(){
+  this.loading=true;
+  const lib=new Promise(res=>{const s=document.createElement('script');s.src='https://unpkg.com/@googlemaps/markerclusterer@2.5.3/dist/index.min.js';s.onload=res;s.onerror=res;document.head.appendChild(s)});
+  const maps=new Promise((res,rej)=>{
+   const t=setTimeout(()=>rej(new Error('timeout')),9000);
+   window.__gmInit=()=>{clearTimeout(t);res()};
+   window.gm_authFailure=()=>{clearTimeout(t);rej(new Error('auth'));if(GM.on){GM.on=false;$('map').innerHTML='';initEcharts();toast(T.mapAuth)}};
+   const s=document.createElement('script');
+   s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(CONFIG.GOOGLE_MAPS_API_KEY)+'&v=weekly&libraries=marker&loading=async&callback=__gmInit&language='+(LANG==='th'?'th':'en')+'&region=TH';
+   s.async=true;s.onerror=()=>{clearTimeout(t);rej(new Error('script'))};document.head.appendChild(s)});
+  return Promise.all([maps,lib]);
+ },
+ init(){
+  const ml=$('maploading');if(ml)ml.remove();
+  this.map=new google.maps.Map($('map'),{center:{lat:20,lng:100},zoom:matchMedia('(max-width:760px)').matches?2:3,minZoom:2,mapId:CONFIG.GOOGLE_MAP_ID,
+   disableDefaultUI:true,gestureHandling:'greedy',clickableIcons:false,tilt:0,mapTypeId:S.style==='terrain'?'hybrid':'roadmap',isFractionalZoomEnabled:false});
+  this.on=true;this.loading=false;applyStyle(true);
+  this.map.addListener('idle',debounce(()=>{checkEmpty();if($('listPanel').classList.contains('open'))renderList();this.updCircles()},120));
+  this.map.addListener('zoom_changed',()=>this.updCircles());
+  this.render();
+  if(S.sel){const it=byId(S.sel);if(it)this.focus(it)}
+ },
+ clear(){this.clusterers.forEach(c=>c.clearMarkers());this.clusterers=[];this.mk.forEach(m=>m.map=null);this.mk=[];if(this.poly){this.poly.setMap(null);this.poly=null}},
+ marker(o,url,z,sel){const M=google.maps.marker.AdvancedMarkerElement;const img=imgOf(url);
+  const w=o.cat?(sel?36:28):(sel?40:(o.pr==='emergency'?34:29));img.style.width=w+'px';img.style.height='auto';img.style.cursor='pointer';img.style.filter='drop-shadow(0 1px 2px rgba(0,0,0,.3))';
+  const m=new M({position:{lat:o.lat,lng:o.lon},content:img,title:L(o.title||o.name),zIndex:z});m.addListener('click',()=>openItem(o.id,true));m.__o=o;return m},
+ clusterRenderer(color,square){return{render:({count,position,markers})=>{
+   let c=color;if(!color){const top=markers.reduce((m,x)=>PR.indexOf(x.__o.pr)<PR.indexOf(m.__o.pr)?x:m,markers[0]);c=PRC[top.__o.pr]}
+   const d=document.createElement('div');const sz=square?28:Math.min(50,28+count*2);
+   d.style.cssText=`width:${sz}px;height:${sz}px;border-radius:${square?'8px':'50%'};background:${c};color:#fff;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font:700 13px Inter,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.35);transform:translateY(50%)`;
+   d.textContent=count;return new google.maps.marker.AdvancedMarkerElement({position,content:d,zIndex:square?500+count:1000+count})}}},
+ render(){if(!this.map)return;this.clear();
+  const MC=window.markerClusterer&&window.markerClusterer.MarkerClusterer;
+  const sel=S.sel&&byId(S.sel);
+  const al=alertsF();const fa=facsF();
+  const group=(items,mkFn,renderer)=>{const ms=items.filter(o=>o.id!==S.sel).map(mkFn);
+   if(MC&&ms.length){this.clusterers.push(new MC({map:this.map,markers:ms,renderer,algorithmOptions:{maxZoom:12,radius:60}}))}else{ms.forEach(m=>m.map=this.map);this.mk.push(...ms)}};
+  FAC_CATS.forEach(cat=>group(fa.filter(f=>f.cat===cat),f=>this.marker(f,facPin(cat),10),this.clusterRenderer(FAC_COLOR[cat],true)));
+  group(al,a=>this.marker(a,alertPin(a.hazard,a.pr,a.status==='expired'||a.status==='cancelled'),20+(5-PR.indexOf(a.pr))),this.clusterRenderer(null,false));
+  if(sel){const vis=sel.cat?S.layers[sel.cat]:al.includes(sel);if(vis){const m=this.marker(sel,sel.cat?facPin(sel.cat):alertPin(sel.hazard,sel.pr,false),9999,true);m.map=this.map;this.mk.push(m)}
+   if(!sel.cat&&sel.poly&&vis){const c=PRC[sel.pr];this.poly=new google.maps.Polygon({map:this.map,paths:sel.poly.map(([lng,lat])=>({lat,lng})),strokeColor:c,strokeOpacity:.95,strokeWeight:2,fillColor:c,fillOpacity:.16,clickable:false,zIndex:1})}}
+  this.updCircles();this.updMe();
+ },
+ updCircles(){if(!this.map)return;this.circles.forEach(c=>c.setMap(null));this.circles=[];if(this.map.getZoom()<16)return;
+  facsF().filter(f=>f.prec==='exact').forEach(f=>this.circles.push(new google.maps.Circle({map:this.map,center:{lat:f.lat,lng:f.lon},radius:45,strokeColor:FAC_COLOR[f.cat],strokeWeight:1.5,fillColor:FAC_COLOR[f.cat],fillOpacity:.16,clickable:false,zIndex:0})))},
+ updMe(){this.me.forEach(x=>x.setMap?x.setMap(null):(x.map=null));this.me=[];if(!S.me||!this.map)return;const pos={lat:S.me[1],lng:S.me[0]};
+  this.me.push(new google.maps.Circle({map:this.map,center:pos,radius:S.meAcc||200,strokeColor:'#1a73e8',strokeOpacity:.4,strokeWeight:1,fillColor:'#1a73e8',fillOpacity:.15,clickable:false}));
+  const d=document.createElement('div');d.style.cssText='width:16px;height:16px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);transform:translateY(50%)';
+  this.me.push(new google.maps.marker.AdvancedMarkerElement({map:this.map,position:pos,content:d,title:T.you,zIndex:9000}))},
+ focus(it){if(!this.map)return;this.render();
+  const z=Math.max(this.map.getZoom(),it.cat?16:(it.poly?11:7));this.map.setZoom(z);this.map.panTo({lat:it.lat,lng:it.lon});
+  if(matchMedia('(max-width:760px)').matches)setTimeout(()=>this.map.panBy(0,window.innerHeight*0.22),250);
+  else setTimeout(()=>this.map.panBy(-210,0),250)}
+};
+
+/* ================= chips (layers) ================= */
+function renderChips(){
+ const c=$('chips');c.innerHTML='';
+ const mk=(key,color,icon,count)=>{const b=document.createElement('button');b.className='chip';b.setAttribute('aria-pressed',S.layers[key]);
+  b.innerHTML=`<span class="cdot" style="background:${color};${key==='alerts'?'border-radius:50%':''}">${glyph(icon,13)}</span>${esc(T.layers[key])}<span class="n">${count}</span>`;
+  b.onclick=()=>{S.layers[key]=!S.layers[key];store.set('wda.layers',JSON.stringify(S.layers));if(S.sel){const it=byId(S.sel);if(it&&((it.cat&&it.cat===key)||(!it.cat&&key==='alerts'))&&!S.layers[key])closeItem()}renderChips();redraw()};c.appendChild(b)};
+ mk('alerts','#c5221f','wildfire',alertsF().length||ALERTS.length);
+ FAC_CATS.forEach(cat=>mk(cat,FAC_COLOR[cat],cat,FAC.filter(f=>f.cat===cat).length));
+}
+
+/* ================= filters panel ================= */
+function renderFilters(){
+ const p=$('filters');const n=S.hz.size+S.st.size+(S.tr!=='d7'?1:0);
+ p.innerHTML=`<h2>${T.filters}<button class="x" id="fclose" aria-label="${T.close}">×</button></h2>
+ <h3>${T.fHazard}</h3><div class="fchips">${HZ.map(h=>`<button class="fchip" data-hz="${h}" aria-pressed="${S.hz.has(h)}">${esc(T.hz[h])}</button>`).join('')}</div>
+ <h3>${T.fSt}</h3><div class="fchips">${STS.map(s=>`<button class="fchip" data-st="${s}" aria-pressed="${S.st.has(s)}">${esc(T.st[s])}</button>`).join('')}</div>
+ <h3>${T.fTime}</h3><div class="seg">${Object.keys(TRS).map(k=>`<button data-tr="${k}" aria-pressed="${S.tr===k}">${T.tr[k]}</button>`).join('')}</div>
+ ${n?`<button class="clear" id="fclear">${T.clear}</button>`:''}`;
+ $('fclose').onclick=()=>closeFloat('filters');
+ p.querySelectorAll('[data-hz]').forEach(b=>b.onclick=()=>{const h=b.dataset.hz;S.hz.has(h)?S.hz.delete(h):S.hz.add(h);afterFilter()});
+ p.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{const s=b.dataset.st;S.st.has(s)?S.st.delete(s):S.st.add(s);afterFilter()});
+ p.querySelectorAll('[data-tr]').forEach(b=>b.onclick=()=>{S.tr=b.dataset.tr;afterFilter()});
+ if(n)$('fclear').onclick=()=>{S.hz.clear();S.st.clear();S.tr='d7';afterFilter()};
+ $('filterBtn').style.color=n?'var(--focus)':'';
+}
+function afterFilter(){renderFilters();renderChips();redraw()}
+$('filterBtn').onclick=()=>toggleFloat('filters',renderFilters);
+
+/* ================= detail ================= */
+function openItem(id,push){
+ const it=byId(id);const wasOpen=!!S.sel;S.sel=id;const app=$('app');app.classList.add('has-detail');app.classList.remove('sheet-full');closeAllFloats();
+ if(push&&location.hash!=='#'+id){if(wasOpen&&S.openedByApp)location.replace('#'+id);else{S.openedByApp=true;location.hash=id}}
+ if(!push)S.openedByApp=false;
+ if(!it){renderNotFound(id);redraw();return}
+ it.cat?renderFac(it):renderAlert(it);
+ if(GM.on||GM.loading){GM.focus(it)}else if(chart){const v=view();const z=Math.max(v.zoom,it.cat?60:(it.poly?30:6));const mobile=matchMedia('(max-width:760px)').matches;
+  let lat=it.lat;if(mobile){/* shift so the point sits above the sheet */lat=it.lat-(18/z)}
+  chart.setOption({geo:{center:[it.lon,lat],zoom:z}});onRoam()}else redraw();
+}
+function closeItem(fromHash){S.sel=null;$('app').classList.remove('has-detail','sheet-full');redraw();
+ if(!fromHash&&location.hash){if(S.openedByApp){S.openedByApp=false;history.back()}else history.replaceState(null,'',location.pathname+location.search)}}
+function head(badge,title,sub){return`<div class="dhead"><div>${badge}<h1>${esc(title)}</h1><div style="color:var(--muted);font-size:13.5px">${esc(sub)}</div></div><button class="x" id="dclose" aria-label="${T.close}">×</button></div><div class="demo">${esc(T.demoNote)}</div>`}
+function bindClose(){$('dclose').onclick=()=>closeItem();$('detailInner').scrollTop=0}
+function renderNotFound(id){$('detailInner').innerHTML=`<div class="dhead"><h1>${esc(T.notFound)}</h1><button class="x" id="dclose" aria-label="${T.close}">×</button></div><p class="demo">${esc(id)}</p>`;bindClose()}
+function renderAlert(a){
+ const s=SRC[a.src];const c=PRC[a.pr];
+ const cap=a.cap?`<dt>Severity</dt><dd>${esc(a.cap.severity)}</dd><dt>Urgency</dt><dd>${esc(a.cap.urgency)}</dd><dt>Certainty</dt><dd>${esc(a.cap.certainty)}</dd>`:'';
+ const note=a.monitor?T.monitorNote:a.cross?T.crossNote:(a.hazard==='earthquake'?T.eqNote:'');
+ const tr=a.lang==='th'?'':`<div class="sec"><h2>${T.translation}</h2>${a.mt?`<div class="mt">${T.mtLabel} · ${T.revision} ${a.rev}</div><div class="quote">${esc(a.mt)}</div>`:`<div class="mt">${T.mtNone}</div>`}</div>`;
+ $('detailInner').innerHTML=head(`<span class="badge" style="background:${c}">${glyph(a.hazard,14)}${esc(T.pr[a.pr])}</span><span class="pill2">${esc(T.st[a.status])}</span>`,L(a.title),L(a.area))+
+ (note?`<p class="note">${esc(note)}</p>`:'')+
+ `<dl class="kv"><dt>${T.agency}</dt><dd>${esc(s.name)}</dd><dt>${T.hazard}</dt><dd>${esc(T.hz[a.hazard])}</dd><dt>${T.native}</dt><dd>${esc(a.native)}</dd>${cap}
+ <dt>${T.display}</dt><dd>${esc(T.pr[a.pr])}</dd><dt>${T.published}</dt><dd>${esc(fmtTime(a.pub))}</dd><dt>${T.fetched}</dt><dd>${esc(fmtTime(s.last))}</dd>
+ <dt>${T.freshness}</dt><dd><span class="health ${s.health}">${esc(T[s.health])}</span></dd><dt>${T.revision}</dt><dd>${a.rev}</dd></dl>
+ <div class="sec"><h2>${T.original}</h2><div class="mt">${esc(s.name)} · ${esc(a.lang.toUpperCase())}</div><div class="quote" lang="${esc(a.lang)}">${esc(a.orig)}</div></div>${tr}
+ <div class="sec"><div class="mt">${a.poly?T.geomOfficial:T.geomNone}</div><a class="srcbtn" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${T.openSrc} ↗</a><div class="mt" style="margin-top:6px">${esc(s.url)}</div></div>`;
+ bindClose();
+}
+function renderFac(f){
+ const s=SRC[f.auth];const c=FAC_COLOR[f.cat];const fresh=f.statusAt&&(Date.now()-f.statusAt)>12*H;const st=fresh?'unknown':f.status;
+ const opt=(lab,v)=>v?`<dt>${lab}</dt><dd>${esc(L(v))}</dd>`:'';
+ $('detailInner').innerHTML=head(`<span class="badge" style="background:${c};border-radius:6px">${glyph(f.cat,14)}${esc(T.layers[f.cat])}</span>`,L(f.name),s.name)+
+ `<p class="note">${esc(T.facWarn[f.cat])}</p>
+ <dl class="kv"><dt>${T.fCategory}</dt><dd>${esc(T.layers[f.cat])}</dd><dt>${T.fAuthority}</dt><dd>${esc(s.name)}</dd>
+ <dt>${T.fStatus}</dt><dd class="st-${st}" style="font-weight:600">${esc(T.fst[st])}</dd>
+ ${f.statusAt?`<dt>${T.fStatusAt}</dt><dd>${esc(fmtTime(f.statusAt))} (${esc(ago(f.statusAt))})</dd>`:''}
+ ${opt(T.fScope,f.scope)}${opt(T.fCapacity,f.capacity)}${opt(T.fServices,f.services)}${opt(T.fHours,f.hours)}
+ <dt>${T.fCoord}</dt><dd>${f.lat.toFixed(4)}, ${f.lon.toFixed(4)} · ${esc(T.fPrec[f.prec])}</dd>
+ <dt>${T.fetched}</dt><dd>${esc(fmtTime(f.fetched))}</dd><dt>${T.freshness}</dt><dd><span class="health ${s.health}">${esc(T[s.health])}</span></dd></dl>
+ <div class="mt">${T.circleNote}</div>
+ <div class="sec"><a class="srcbtn" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${T.openSrc} ↗</a><div class="mt" style="margin-top:6px">${esc(s.url)}</div></div>`;
+ bindClose();
+}
+$('sheetToggle').onclick=()=>$('app').classList.toggle('sheet-full');
+addEventListener('hashchange',()=>{const h=decodeURIComponent(location.hash.slice(1));if(h){if(h!==S.sel)openItem(h,false)}else if(S.sel){S.openedByApp=false;closeItem(true)}});
+
+/* ================= list ================= */
+function renderList(){
+ const p=$('listPanel');const al=alertsF().filter(inView);const fa=facsF().filter(inView);
+ const row=(o)=>o.cat?`<button class="item" data-id="${o.id}"><span class="ico f" style="background:${FAC_COLOR[o.cat]}">${glyph(o.cat)}</span><span><span class="t">${esc(L(o.name))}</span><br><span class="m">${esc(T.layers[o.cat])} · ${esc(T.fst[o.status])}</span></span></button>`
+  :`<button class="item" data-id="${o.id}"><span class="ico" style="background:${PRC[o.pr]}">${glyph(o.hazard)}</span><span><span class="t">${esc(L(o.title))}</span><br><span class="m">${esc(T.pr[o.pr])} · ${esc(T.st[o.status])} · ${esc(SRC[o.src].name)} · ${esc(ago(o.pub))}</span></span></button>`;
+ p.innerHTML=`<h2>${T.listTitle}<button class="x" id="lclose" aria-label="${T.close}">×</button></h2>`+
+ (S.layers.alerts?`<h3>${T.layers.alerts} (${al.length})</h3>`+(al.length?al.slice(0,60).map(row).join(''):`<p>${esc(T.listEmpty)}</p>`):'')+
+ (fa.length?`<h3>${LANG==='th'?'สถานที่ทางการ':'Official facilities'} (${fa.length})</h3>`+fa.slice(0,60).map(row).join(''):'');
+ $('lclose').onclick=()=>openList(false);
+ p.querySelectorAll('.item').forEach(b=>b.onclick=()=>openItem(b.dataset.id,true));
+}
+function openList(on){$('listPanel').classList.toggle('open',on);$('listBtn').setAttribute('aria-pressed',on);if(on){['filters','help','settings'].forEach(closeFloat);renderList()}}
+$('listBtn').onclick=()=>openList(!$('listPanel').classList.contains('open'));
+
+/* ================= floats ================= */
+function closeFloat(id){$(id).classList.remove('open');if(id==='help')$('helpBtn').setAttribute('aria-pressed','false')}
+function closeAllFloats(){['filters','help','settings'].forEach(closeFloat);openList(false)}
+function toggleFloat(id,render){const o=!$(id).classList.contains('open');if(o){closeAllFloats();render()}$(id).classList.toggle('open',o);if(id==='help')$('helpBtn').setAttribute('aria-pressed',o)}
+function renderHelp(){
+ $('help').innerHTML=`<h2>${T.helpTitle}<button class="x" id="hclose" aria-label="${T.close}">×</button></h2>
+ <h3>${T.hSafe}</h3><p>${T.hSafeT}</p>
+ <h3>${T.hMarkers}</h3><p>${T.hMarkersT}</p>
+ <div class="fchips" style="margin:6px 0">${PR.slice(0,5).map(p=>`<span style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px"><i class="sw" style="background:${PRC[p]}"></i>${T.pr[p]}</span>`).join('')}</div>
+ <ul style="list-style:none;padding:0;columns:2">${HZ.map(h=>`<li style="display:flex;align-items:center;gap:8px">${glyph(h,16)} ${T.hz[h]}</li>`).join('')}</ul>
+ <p style="color:var(--muted)">${T.hNoGreen}</p>
+ <h3>${T.hFac}</h3><p>${T.hFacT}</p>
+ <ul style="list-style:none;padding:0">${FAC_CATS.map(c=>`<li style="display:flex;align-items:center;gap:8px"><span class="ico f" style="background:${FAC_COLOR[c]};width:22px;height:22px;border-radius:6px">${glyph(c,13)}</span>${T.layers[c]}</li>`).join('')}</ul>
+ <p style="color:var(--muted)">${T.circleNote}</p>
+ <h3>${T.hSources}</h3>${SOURCES.map(s=>`<div class="srcrow"><span>${esc(s.name)}<br><span style="color:var(--muted);font-size:12px">${T.lastOk}: ${esc(ago(s.last))}</span></span><span class="health ${s.health}">${T[s.health]}</span></div>`).join('')}
+ <p style="color:var(--muted);font-size:12.5px">${T.hFiltered}: ${EXCLUDED_TEST}</p>
+ <h3>${T.hAI}</h3><p>${T.hAIT}</p><h3>${T.hCov}</h3><p>${T.hCovT}</p>`;
+ $('hclose').onclick=()=>closeFloat('help');
+}
+$('helpBtn').onclick=()=>toggleFloat('help',renderHelp);
+function renderSettings(){
+ const th=store.get('wda.theme','auto');
+ $('settings').innerHTML=`<h2>${T.sTitle}<button class="x" id="sclose" aria-label="${T.close}">×</button></h2>
+ <h3>${T.sLang}</h3><div class="seg">${[['th','ไทย'],['en','English'],['auto',T.auto]].map(([k,n])=>`<button data-lg="${k}" aria-pressed="${langPref===k}">${n}</button>`).join('')}</div>
+ <h3>${T.sTheme}</h3><div class="seg">${['auto','light','dark'].map(k=>`<button data-th="${k}" aria-pressed="${th===k}">${T[k]}</button>`).join('')}</div>`;
+ $('sclose').onclick=()=>closeFloat('settings');
+ $('settings').querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{store.set('wda.theme',b.dataset.th);applyTheme();renderSettings()});
+ $('settings').querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{langPref=b.dataset.lg;store.set('wda.lang',langPref);LANG=resolveLang();T=CAT[LANG];renderAll();renderSettings()});
+}
+$('langBtn').onclick=()=>toggleFloat('settings',renderSettings);
+function applyTheme(){const t=store.get('wda.theme','auto');const d=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light'}
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(store.get('wda.theme','auto')==='auto')applyTheme()})}catch(e){}
+
+/* ================= search ================= */
+const q=$('q'),sg=$('sugg');let opts=[],act=-1;
+const norm=s=>String(s||'').toLowerCase().normalize('NFKC');
+function doSearch(){
+ const v=norm(q.value.trim());$('qclear').hidden=!q.value;if(!v){closeSugg();return}
+ const areas=PLACES.filter(p=>norm(p.th).includes(v)||norm(p.en).includes(v)).slice(0,5);
+ const dis=ALERTS.filter(a=>[a.title.th,a.title.en,a.area.th,a.area.en,CAT.en.hz[a.hazard],CAT.th.hz[a.hazard],SRC[a.src].name].some(x=>norm(x).includes(v))).sort((a,b)=>PR.indexOf(a.pr)-PR.indexOf(b.pr)).slice(0,6);
+ opts=[...areas.map(p=>({k:'a',p})),...dis.map(a=>({k:'d',a}))];act=opts.length?0:-1;let i=0,h='';
+ if(areas.length)h+=`<h4>${T.areas}</h4>`+areas.map(p=>`<div role="option" id="o${i}" data-i="${i++}"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9" r="2.5" fill="currentColor"/></svg><span>${esc(LANG==='th'?p.th:p.en)}<br><span class="sub">${esc(LANG==='th'?p.en:p.th)}</span></span></div>`).join('');
+ if(dis.length)h+=`<h4>${T.disasters}</h4>`+dis.map(a=>`<div role="option" id="o${i}" data-i="${i++}"><span class="ico" style="background:${PRC[a.pr]};width:28px;height:28px">${glyph(a.hazard,15)}</span><span>${esc(L(a.title))}<br><span class="sub">${esc(T.pr[a.pr])} · ${esc(SRC[a.src].name)}</span></span></div>`).join('');
+ if(!opts.length)h=`<div class="none">${T.noResult}</div>`;
+ sg.innerHTML=h;sg.classList.add('open');$('searchbox').setAttribute('aria-expanded','true');
+ sg.querySelectorAll('[role=option]').forEach(o=>o.onmousedown=e=>{e.preventDefault();pick(+o.dataset.i)});hl();
+}
+function hl(){sg.querySelectorAll('[role=option]').forEach(o=>o.setAttribute('aria-selected',+o.dataset.i===act));if(act>=0){q.setAttribute('aria-activedescendant','o'+act);const el=$('o'+act);el&&el.scrollIntoView({block:'nearest'})}}
+function closeSugg(){sg.classList.remove('open');$('searchbox').setAttribute('aria-expanded','false');q.removeAttribute('aria-activedescendant')}
+function pick(i){const o=opts[i];if(!o)return;closeSugg();q.blur();
+ if(o.k==='a'){q.value=LANG==='th'?o.p.th:o.p.en;if(S.sel)closeItem();flyTo(o.p.lon,o.p.lat,o.p.zoom)}else{q.value=L(o.a.title);openItem(o.a.id,true)}$('qclear').hidden=false}
+q.addEventListener('input',debounce(doSearch,160));q.addEventListener('focus',()=>{if(q.value.trim())doSearch()});q.addEventListener('blur',()=>setTimeout(closeSugg,120));
+q.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){act=Math.min(opts.length-1,act+1);hl();e.preventDefault()}else if(e.key==='ArrowUp'){act=Math.max(0,act-1);hl();e.preventDefault()}else if(e.key==='Enter'){if(act>=0)pick(act);e.preventDefault()}else if(e.key==='Escape')closeSugg()});
+$('qclear').onclick=()=>{q.value='';$('qclear').hidden=true;closeSugg();q.focus()};
+
+/* ================= location (explicit tap only, never uploaded) ================= */
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('on'),3400)}
+$('locBtn').onclick=()=>{if(!navigator.geolocation){toast(T.locFail);return}
+ try{navigator.geolocation.getCurrentPosition(p=>{S.me=[p.coords.longitude,p.coords.latitude];S.meAcc=p.coords.accuracy;if(GM.on)GM.updMe();toast(T.locOk);flyTo(S.me[0],S.me[1],Math.max(view().zoom,30))},()=>toast(T.locFail),{enableHighAccuracy:false,timeout:8000,maximumAge:60000})}catch(e){toast(T.locFail)}};
+$('worldBtn').onclick=()=>{if(GM.on){GM.map.setCenter({lat:20,lng:100});GM.map.setZoom(2);return}if(chart){chart.setOption({geo:{center:WORLD.center,zoom:WORLD.zoom}});onRoam()}};
+$('zin').onclick=()=>zoomBy(1.7);$('zout').onclick=()=>zoomBy(1/1.7);
+
+/* ================= status + simulated stream ================= */
+function renderStatus(){$('statusText').textContent=(navigator.onLine?T.stDemo:T.stOffline)+' · '+T.upd+' '+ago(lastSync)}
+addEventListener('online',renderStatus);addEventListener('offline',renderStatus);
+function renderLegend(){$('legend').innerHTML=PR.slice(0,5).map(p=>`<span><i class="sw" style="background:${PRC[p]}"></i>${T.pr[p]}</span>`).join('')+FAC_CATS.map(c=>`<span><i class="sw sq" style="background:${FAC_COLOR[c]}"></i>${T.layers[c]}</span>`).join('')}
+let tick=0;
+const SIM=[
+ ()=>{ALERTS.push({id:'demo-tw-eq-099',src:'cwa',hazard:'earthquake',pr:'information',status:'active',rev:1,lon:121.71,lat:24.05,area:{th:'นอกชายฝั่งฮัวเหลียน ไต้หวัน',en:'Off Hualien, Taiwan'},title:{th:'อาฟเตอร์ช็อก M4.4 นอกชายฝั่งฮัวเหลียน',en:'M4.4 aftershock off Hualien'},native:'M 4.4 · depth 12 km',pub:Date.now(),orig:'[SAMPLE] Earthquake report. Magnitude 4.4, depth 12 km.',lang:'en'});SRC.cwa.last=Date.now();return'demo-tw-eq-099'},
+ ()=>{const f=FAC.find(x=>x.id==='fac-th-s-101');f.status='full';f.statusAt=Date.now();f.capacity={th:'รองรับ 300 คน (เต็ม)',en:'300 people (full)'};f.fetched=Date.now();return f.id},
+ ()=>{const a=byId('demo-th-fl-003');a.rev++;a.status='updated';a.pub=Date.now();a.native='ระดับ: เตือนภัย (ฉบับที่ '+a.rev+')';a.orig=a.orig.replace(/ฉบับที่ \d+/,'ฉบับที่ '+a.rev);SRC.tmd.last=Date.now();return a.id},
+ ()=>{const a=byId('demo-tw-eq-099');a.mt='[ตัวอย่าง] รายงานแผ่นดินไหว ขนาด 4.4 ลึก 12 กม.';return a.id}
+];
+setInterval(()=>{if(tick<SIM.length){const id=SIM[tick++]();SEQ++;lastSync=Date.now();const it=byId(id);toast(T.newEvent+': '+L(it.title||it.name));renderChips();redraw();if(S.sel===id)it.cat?renderFac(it):renderAlert(it)}lastSync=Math.max(lastSync,Date.now()-20000);renderStatus()},25000);
+setInterval(renderStatus,15000);
+
+/* ================= init ================= */
+function applyI18n(){document.documentElement.lang=LANG;q.placeholder=T.searchPh;$('langCode').textContent=LANG.toUpperCase();
+ const al=(id,t)=>{$(id).setAttribute('aria-label',t);$(id).title=t};al('listBtn',T.list);al('worldBtn',T.world);al('locBtn',T.locate);al('helpBtn',T.help);al('filterBtn',T.filters);al('zin',T.zoomIn);
+ const ml=$('maploading');if(ml&&!chart)ml.textContent=T.loading;applyStyle(true)}
+function renderAll(){applyI18n();renderChips();renderLegend();renderStatus();if(chart){chart.setOption({geo:{label:geoOpt().label}});chart.setOption({geo:{label:{show:!!labelsOn}}})}redraw();if(S.sel){const it=byId(S.sel);it?(it.cat?renderFac(it):renderAlert(it)):renderNotFound(S.sel)}if($('help').classList.contains('open'))renderHelp();if($('filters').classList.contains('open'))renderFilters()}
+addEventListener('keydown',e=>{if(e.key!=='Escape'||document.activeElement===q)return;const open=['settings','filters','help'].find(id=>$(id).classList.contains('open'));if(open)closeFloat(open);else if(S.sel)closeItem();else if($('listPanel').classList.contains('open'))openList(false)});
+applyI18n();renderChips();renderLegend();renderStatus();
+requestAnimationFrame(()=>{initMap();const h=decodeURIComponent(location.hash.slice(1));if(h)openItem(h,false)});
+})();
+</script>
+</body>
+</html>
