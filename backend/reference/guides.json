@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "dataset_version": "2026-11-13",
+  "notice": "General preparedness guidance summarized from official publications. It is not an instruction for a current incident. During an emergency, the instructions of your local authorities always take priority.",
+  "guides": [
+    {
+      "hazard": "earthquake",
+      "title": "Earthquakes",
+      "authority": "FEMA / Ready.gov (United States Government)",
+      "jurisdiction": "US",
+      "scope": "United States federal guidance; useful as general reference elsewhere.",
+      "language": "en",
+      "source_url": "https://www.ready.gov/earthquakes",
+      "published_or_reviewed": null,
+      "retrieved": "2026-11-13",
+      "before": [
+        "Practise how to protect yourself (Drop, Cover and Hold On) with family and coworkers.",
+        "Sign up for earthquake alerts where they are available.",
+        "Make a family emergency communications plan with an out-of-area contact and a place to meet if separated.",
+        "Make a supply kit with food and water for several days, a flashlight, a fire extinguisher and a whistle.",
+        "Secure heavy items such as bookcases, refrigerators and televisions."
+      ],
+      "during": [
+        "Protect yourself right away: Drop, Cover and Hold On.",
+        "If you are inside, stay inside; do not run outside and avoid doorways.",
+        "If you are in bed, turn face down and cover your head and neck with a pillow.",
+        "If you are driving, pull over, stop and set the parking brake.",
+        "If you are outside, stay outside and move away from buildings, trees, streetlights and power lines."
+      ],
+      "after": [
+        "Expect aftershocks and be ready to Drop, Cover and Hold On again.",
+        "If you are in a damaged building, go outside and move away; do not enter damaged buildings.",
+        "If you are trapped, text or bang on a pipe or wall; use a whistle instead of shouting and cover your mouth.",
+        "In a tsunami area, go inland or to higher ground as soon as the shaking stops.",
+        "Watch for damaged buildings, gas and water leaks and downed power lines; wear protective clothing during cleanup."
+      ]
+    },
+    {
+      "hazard": "tsunami",
+      "title": "Tsunamis",
+      "authority": "FEMA / Ready.gov (United States Government)",
+      "jurisdiction": "US",
+      "scope": "United States federal guidance; useful as general reference elsewhere.",
+      "language": "en",
+      "source_url": "https://www.ready.gov/tsunamis",
+      "published_or_reviewed": null,
+      "retrieved": "2026-11-13",
+      "before": [
+        "Learn the natural signs: an earthquake, a loud roar from the ocean, a sudden rise or wall of water, or water draining to expose the sea floor.",
+        "Know and practise your community's evacuation plans and routes from home, work and places you visit.",
+        "Pick refuges at least 100 feet (about 30 m) above sea level or at least one mile (about 1.6 km) inland.",
+        "Make a family emergency communication plan and sign up for local warnings."
+      ],
+      "during": [
+        "If an earthquake happens, protect yourself from the shaking first (Drop, Cover and Hold On).",
+        "When the shaking stops, if there are natural signs or official warnings, move immediately as high and as far inland as possible — do not wait for an evacuation order.",
+        "Leave immediately if told to do so; evacuation routes are often marked with a wave and an arrow.",
+        "If you are in the water, grab something that floats. If you are in a boat, face the waves and head out to sea; if you are in a harbour, go inland."
+      ],
+      "after": [
+        "Listen to local authorities for areas to avoid and shelter locations.",
+        "Avoid wading in floodwater, which may be deeper than it looks and contain dangerous debris.",
+        "Beware of electrocution from underground or downed power lines.",
+        "Stay away from damaged buildings, roads and bridges; use text messages to save phone lines for emergencies."
+      ]
+    },
+    {
+      "hazard": "flood",
+      "title": "Floods and flash floods",
+      "authority": "FEMA / Ready.gov (United States Government)",
+      "jurisdiction": "US",
+      "scope": "United States federal guidance; useful as general reference elsewhere.",
+      "language": "en",
+      "source_url": "https://www.ready.gov/floods",
+      "published_or_reviewed": null,
+      "retrieved": "2026-11-13",
+      "before": [
+        "Know whether you live in a flood-prone area and how you would receive local warnings.",
+        "Plan where you would go and how you would get there if told to evacuate.",
+        "Keep important documents in a waterproof place or as protected digital copies.",
+        "Gather supplies, including medication, for everyone in the household and for pets."
+      ],
+      "during": [
+        "Find safe shelter right away; evacuate immediately if told to do so and never drive around barricades.",
+        "Do not walk, swim or drive through flood water — six inches (15 cm) of moving water can knock you down and one foot (30 cm) can sweep a vehicle away.",
+        "Stay off bridges over fast-moving water.",
+        "If trapped in a building, go to the highest level; do not climb into a closed attic. Only go on the roof if necessary and signal for help.",
+        "If your car is trapped in rapidly moving water, stay inside; get on the roof if water rises inside the car."
+      ],
+      "after": [
+        "Listen to local authorities before returning home.",
+        "Stay out of flood water, which can be contaminated and hide debris.",
+        "Do not touch electrical equipment if it is wet or if you are standing in water.",
+        "Use generators only outdoors and away from windows; wear protective clothing when cleaning up."
+      ]
+    },
+    {
+      "hazard": "cyclone",
+      "title": "Hurricanes, typhoons and tropical cyclones",
+      "authority": "FEMA / Ready.gov (United States Government)",
+      "jurisdiction": "US",
+      "scope": "United States federal guidance; useful as general reference elsewhere.",
+      "language": "en",
+      "source_url": "https://www.ready.gov/hurricanes",
+      "published_or_reviewed": null,
+      "retrieved": "2026-11-13",
+      "before": [
+        "Know whether you live in an evacuation zone; learn the routes, practise with your household and pets, and decide where you will stay.",
+        "Follow the instructions of local emergency managers as the threat develops.",
+        "Prepare your home for high winds and flooding: clear drains and gutters and trim damaged tree limbs."
+      ],
+      "during": [
+        "Pay attention to emergency information and alerts; if you are told to evacuate, do so immediately.",
+        "For high winds, take refuge in a designated storm shelter or an interior room.",
+        "If trapped by flooding, go to the highest level of the building; do not climb into a closed attic.",
+        "Do not walk, swim or drive through flood water."
+      ],
+      "after": [
+        "Follow local officials' information and special instructions.",
+        "Do not touch wet electrical equipment; turn off power at the main breaker only if it is safe to do so.",
+        "Do not wade in flood water, which can contain pathogens, chemicals, debris and live wires.",
+        "Wear protective clothing and work with someone else during cleanup; children should not help with cleanup."
+      ]
+    },
+    {
+      "hazard": "storm",
+      "title": "Thunderstorms, lightning and hail",
+      "authority": "FEMA / Ready.gov (United States Government)",
+      "jurisdiction": "US",
+      "scope": "United States federal guidance; useful as general reference elsewhere.",
+      "language": "en",
+      "source_url": "https://www.ready.gov/sites/default/files/2025-02/fema_full-suite-hazard-info-sheets.pdf",
+      "published_or_reviewed": "2024-08",
+      "retrieved": "2026-11-13",
+      "before": [
+        "Know your area's risk; thunderstorms can happen at any time of year and any hour.",
+        "Sign up for your community's warning system.",
+        "Identify sturdy buildings close to where you live, work, study and play.",
+        "Trim trees that could fall on your home and secure outdoor furniture."
+      ],
+      "during": [
+        "When thunder roars, go indoors — a sturdy building is the safest place.",
+        "Pay attention to weather reports and warnings and be ready to change plans.",
+        "Avoid running water and landline phones; electricity can travel through plumbing and phone lines.",
+        "Unplug chargers and appliances to protect them from surges."
+      ],
+      "after": [
+        "Follow authorities and forecasts to know when it is safe to go outside.",
+        "Watch for fallen power lines and trees and report them immediately.",
+        "Be alert for flash flooding."
+      ]
+    },
+    {
+      "hazard": "tornado",
+      "title": "Tornadoes",
+      "authority": "FEMA / Ready.gov (United States Government)",
+      "jurisdiction": "US",
+      "scope": "United States federal guidance; useful as general reference elsewhere.",
+      "language": "en",
+      "source_url": "https://www.ready.gov/sites/default/files/2025-02/fema_full-suite-hazard-info-sheets.pdf",
+      "published_or_reviewed": "2024-08",
+      "retrieved": "2026-11-13",
+      "before": [
+        "Know the signs: a rotating funnel-shaped cloud, an approaching cloud of debris, or a loud roar like a freight train.",
+        "Sign up for your community's warning system and pay attention to weather reports.",
+        "Identify and practise going to a safe shelter for high winds, such as a safe room or storm shelter; otherwise a small, interior, windowless room on the lowest level of a sturdy building."
+      ],
+      "during": [
+        "Go immediately to the safe location you identified.",
+        "Protect your head and neck with your arms and put materials such as furniture and blankets around you.",
+        "Do not stay in mobile homes or modular structures when a tornado threatens.",
+        "Keep listening for current emergency information and instructions."
+      ],
+      "after": [
+        "Keep listening to local authorities for updated information.",
+        "If trapped, cover your mouth with cloth to avoid breathing dust; text, bang on a pipe or use a whistle instead of shouting.",
+        "Stay clear of fallen power lines and broken utility lines."
+      ]
+    },
+    {
+      "hazard": "wildfire",
+      "title": "Wildfires",
+      "authority": "FEMA / Ready.gov (United States Government)",
+      "jurisdiction": "US",
+      "scope": "United States federal guidance; useful as general reference elsewhere.",
+      "language": "en",
+      "source_url": "https://www.ready.gov/sites/default/files/2021-11/are-you-ready-guide.pdf",
+      "published_or_reviewed": "2021-11",
+      "retrieved": "2026-11-13",
+      "before": [
+        "Set up defence zones around your home and property.",
+        "Remove gas, oil, propane and other fuel sources from within 30 feet (about 9 m) of your home.",
+        "Stay informed about weather conditions and other emergencies that may cause a wildfire."
+      ],
+      "during": [
+        "Evacuate immediately once a notice has been issued so that your route is not blocked by the fire.",
+        "Follow the instructions of local authorities."
+      ],
+      "after": [
+        "Return only when authorities say it is safe.",
+        "Protect your breathing where air quality is poor because of smoke."
+      ]
+    },
+    {
+      "hazard": "volcano",
+      "title": "Volcanic eruptions",
+      "authority": "FEMA / Ready.gov (United States Government)",
+      "jurisdiction": "US",
+      "scope": "United States federal guidance; useful as general reference elsewhere.",
+      "language": "en",
+      "source_url": "https://www.ready.gov/volcanoes",
+      "published_or_reviewed": null,
+      "retrieved": "2026-11-13",
+      "before": [
+        "Know your area's risk from volcanic eruption.",
+        "Ask local emergency management about evacuation and shelter plans and protection from ash.",
+        "Sign up for volcano activity notifications where available.",
+        "Keep non-perishable food, cleaning supplies, water and medication for several days."
+      ],
+      "during": [
+        "Listen to alerts and follow evacuation orders from local authorities; evacuate early.",
+        "Avoid areas downwind and river valleys downstream of the volcano.",
+        "If you have enough supplies, shelter from ash where you are: cover ventilation openings and seal doors and windows."
+      ],
+      "after": [
+        "Follow authorities to learn whether it is safe to return.",
+        "Avoid driving in heavy ash; it can clog engines and stall vehicles.",
+        "Avoid contact with ash if you have breathing problems."
+      ]
+    },
+    {
+      "hazard": "landslide",
+      "title": "Landslides and mudslides",
+      "authority": "FEMA / Ready.gov (United States Government)",
+      "jurisdiction": "US",
+      "scope": "United States federal guidance; useful as general reference elsewhere.",
+      "language": "en",
+      "source_url": "https://www.ready.gov/sites/default/files/2025-02/fema_full-suite-hazard-info-sheets.pdf",
+      "published_or_reviewed": "2024-08",
+      "retrieved": "2026-11-13",
+      "before": [
+        "Know the landslide risk in your area; ask officials whether a landslide map exists.",
+        "Learn the warning signs: new cracks or bulges in ground or pavement, soil moving away from foundations, tilting structures, broken water lines.",
+        "Know your community's evacuation plans and sign up for local warnings."
+      ],
+      "during": [
+        "If you are under a landslide warning, evacuate early.",
+        "Move away from the path of a landslide or debris flow as quickly as possible.",
+        "Avoid river valleys, low-lying areas, the bases of steep slopes and narrow canyons.",
+        "Listen for unusual sounds such as trees cracking or boulders knocking together."
+      ],
+      "after": [
+        "Stay away from the slide area; more material may come loose.",
+        "Watch for flooding, which can follow a landslide.",
+        "Listen to authorities about when it is safe to return; report downed power lines."
+      ]
+    },
+    {
+      "hazard": "heat",
+      "title": "Extreme heat",
+      "authority": "FEMA / Ready.gov (United States Government)",
+      "jurisdiction": "US",
+      "scope": "United States federal guidance; useful as general reference elsewhere.",
+      "language": "en",
+      "source_url": "https://www.ready.gov/sites/default/files/2025-02/fema_full-suite-hazard-info-sheets.pdf",
+      "published_or_reviewed": "2024-08",
+      "retrieved": "2026-11-13",
+      "before": [
+        "Find places with air conditioning that you can go to.",
+        "Prepare your home to keep heat out, for example with shades that block the sun.",
+        "Check that family members and friends have a plan to stay cool."
+      ],
+      "during": [
+        "Stay in an air-conditioned place if possible.",
+        "Avoid strenuous activities and drink fluids.",
+        "Wear lightweight, light-coloured, loose clothing.",
+        "Watch for heat illness; very high body temperature, hot dry skin, confusion or unconsciousness can be a medical emergency — call your local emergency number."
+      ],
+      "after": [
+        "Check on neighbours, especially older adults and young children.",
+        "Keep following local heat advisories until they are lifted."
+      ]
+    },
+    {
+      "hazard": "winter",
+      "title": "Extreme cold and winter storms",
+      "authority": "FEMA / Ready.gov (United States Government)",
+      "jurisdiction": "US",
+      "scope": "United States federal guidance; useful as general reference elsewhere.",
+      "language": "en",
+      "source_url": "https://www.ready.gov/sites/default/files/2025-02/fema_full-suite-hazard-info-sheets.pdf",
+      "published_or_reviewed": "2024-08",
+      "retrieved": "2026-11-13",
+      "before": [
+        "Prepare your home to keep out the cold with insulation, caulking and weather stripping; learn how to keep pipes from freezing.",
+        "Install and test smoke alarms and carbon monoxide detectors with battery backups.",
+        "Pay attention to weather reports and sign up for local warnings.",
+        "Include warm clothing and blankets in your supplies."
+      ],
+      "during": [
+        "Stay off roads if at all possible; if trapped in your car, stay inside.",
+        "Stay indoors and dress warmly.",
+        "Use generators and grills only outdoors and away from windows; never heat your home with a gas stove or oven.",
+        "Watch for signs of frostbite (loss of feeling and colour) and hypothermia."
+      ],
+      "after": [
+        "If someone shows signs of hypothermia, go to a warm room and warm the centre of the body first; keep the person dry and wrapped in blankets.",
+        "Take refuge with family or friends if your home loses power or heat for more than a few hours."
+      ]
+    }
+  ],
+  "unavailable": [
+    { "hazard": "drought", "reason": "No complete official before/during/after guidance was reviewed yet." }
+  ]
+}

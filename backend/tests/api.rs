@@ -13,7 +13,7 @@ fn loaded(dir: &std::path::Path) -> Loaded {
     let m = mapping();
     validate(&app, &sources.sources, &m).unwrap();
     let gazetteer = toml::from_str(include_str!("../config/gazetteer.toml")).unwrap();
-    Loaded { app, sources: sources.sources, mapping: m, gazetteer }
+    Loaded { app, sources: sources.sources, mapping: m, gazetteer, reference: reference() }
 }
 
 async fn get(app: &axum::Router, uri: &str) -> (u16, serde_json::Value) {

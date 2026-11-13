@@ -2,13 +2,16 @@
 //! frontend served by Axum as static assets).
 
 use crate::api;
+use crate::config::HttpConfig;
 use crate::config::Loaded;
 use crate::geo::spatial_index::AlertIndex;
+use crate::http::Edge;
 use crate::ingest::http_client::build_client;
 use crate::ingest::scheduler::{spawn_expiry_worker, spawn_health_worker, spawn_sources, IngestRuntime};
 use crate::realtime::event::ApiEvent;
 use crate::state::{ApiConfig, AppState, SseLimits};
 use crate::storage::redb::{spawn_writer, Db, WriterConfig, WriterHandle};
+use axum::extract::DefaultBodyLimit;
 use axum::routing::get;
 use axum::Router;
 use std::collections::HashMap;
@@ -19,6 +22,10 @@ use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
 pub fn router(state: AppState, frontend_dir: Option<std::path::PathBuf>) -> Router {
+    router_with(state, frontend_dir, HttpConfig::default())
+}
+
+pub fn router_with(state: AppState, frontend_dir: Option<std::path::PathBuf>, http: HttpConfig) -> Router {
     let api = Router::new()
         .route("/health/live", get(api::health::live))
         .route("/health/ready", get(api::health::ready))
@@ -28,12 +35,22 @@ pub fn router(state: AppState, frontend_dir: Option<std::path::PathBuf>) -> Rout
         .route("/api/v1/alerts/:alert_id", get(api::alerts::detail))
         .route("/api/v1/search", get(api::search::search))
         .route("/api/v1/stream", get(api::stream::stream))
+        .route("/api/v1/alerts/:alert_id/facilities", get(api::reference::facilities))
+        .route("/api/v1/contacts", get(api::reference::contacts))
+        .route("/api/v1/contacts/:country", get(api::reference::contact))
+        .route("/api/v1/guides", get(api::reference::guides))
+        .route("/api/v1/guides/:hazard", get(api::reference::guide))
+        .route("/api/v1/geocode", get(api::geocode::geocode))
+        .route("/api/v1/notify/eligible", get(api::notify::eligible_alerts))
         .with_state(state);
     let app = match frontend_dir {
         Some(d) if d.is_dir() => api.fallback_service(ServeDir::new(d)),
         _ => api,
     };
-    app.layer(TraceLayer::new_for_http())
+    let edge = Arc::new(Edge::new(http));
+    app.layer(axum::middleware::from_fn_with_state(edge, crate::http::edge))
+        .layer(DefaultBodyLimit::max(16 * 1024))
+        .layer(TraceLayer::new_for_http())
 }
 
 pub struct Running {
@@ -85,6 +102,12 @@ pub fn start(loaded: &Loaded, start_ingestion: bool) -> anyhow::Result<Running> 
             heartbeat_seconds: app.sse_heartbeat_seconds,
         }),
         gazetteer: Arc::new(loaded.gazetteer.clone()),
+        reference: Arc::new(loaded.reference.clone()),
+        geocoder: if app.geocoder.enabled {
+            Some(Arc::new(crate::api::geocode::Geocoder::new(&app.geocoder, &app.user_agent)?))
+        } else {
+            None
+        },
     };
     if start_ingestion {
         let client = build_client(&app.user_agent, &loaded.sources, app.allow_private_destinations)?;

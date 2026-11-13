@@ -9,8 +9,10 @@ async fn main() -> anyhow::Result<()> {
     if loaded.app.environment == wda::config::Environment::Development {
         tracing::warn!("development environment: sources pending legal review may be enabled; not for public redistribution");
     }
+    let r = loaded.reference.coverage_counts();
+    tracing::info!(contacts = ?r, guides = loaded.reference.guides.guides.len(), facilities = loaded.reference.facilities.facilities.len(), "reference data loaded");
     let running = wda::app::start(&loaded, true)?;
-    let app = wda::app::router(running.state.clone(), Some(loaded.app.frontend_dir.clone()));
+    let app = wda::app::router_with(running.state.clone(), Some(loaded.app.frontend_dir.clone()), loaded.app.http.clone());
     let listener = tokio::net::TcpListener::bind(&loaded.app.bind).await?;
     tracing::info!(bind = %loaded.app.bind, "listening");
     let shutdown = running.shutdown.clone();

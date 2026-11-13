@@ -17,3 +17,24 @@ sse_client_queue = 64
 sse_heartbeat_seconds = 20
 writer_queue = 256
 allow_private_destinations = false
+
+[http]
+# Exact origins allowed to call the API from another site (e.g. GitHub Pages).
+# Empty = same-origin only. Override with WDA_CORS_ORIGINS="https://a,https://b".
+cors_allowed_origins = []
+rate_limit_per_minute = 300
+trust_forwarded_for = false
+hsts = false
+
+[geocoder]
+# Address search via Nominatim, server-side only. Off by default; turning it on
+# means accepting the OSMF usage policy (≤1 req/s, attribution, no bulk use).
+enabled = false
+base_url = "https://nominatim.openstreetmap.org"
+min_interval_ms = 1100
+cache_entries = 2000
+
+[reference]
+contacts_file = "reference/emergency_contacts.json"
+guides_file = "reference/guides.json"
+facilities_file = "reference/facilities.json"

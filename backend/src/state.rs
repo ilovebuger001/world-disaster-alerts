@@ -35,4 +35,7 @@ pub struct AppState {
     pub sse: Arc<SseLimits>,
     pub api: Arc<ApiConfig>,
     pub gazetteer: Arc<crate::api::search::Gazetteer>,
+    pub reference: Arc<crate::reference::Reference>,
+    /// `None` when address search is disabled in configuration.
+    pub geocoder: Option<Arc<crate::api::geocode::Geocoder>>,
 }

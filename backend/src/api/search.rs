@@ -80,5 +80,15 @@ pub async fn search(State(st): State<AppState>, Query(q): Query<HashMap<String, 
     };
     disasters.sort_by_key(|d| (d.0, d.1));
     let disasters: Vec<Value> = disasters.into_iter().take(limit).map(|d| d.2).collect();
-    Ok(Json(json!({ "areas": areas, "disasters": disasters })))
+    let coordinates = super::geocode::parse_coordinates(raw).map(|(lat, lon)| json!({ "lat": lat, "lon": lon }));
+    let countries: Vec<Value> = st
+        .reference
+        .contacts
+        .countries
+        .iter()
+        .filter(|c| c.name.to_lowercase().contains(&needle) || c.code.eq_ignore_ascii_case(raw))
+        .take(limit)
+        .map(|c| json!({ "code": c.code, "name": c.name, "coverage": c.coverage }))
+        .collect();
+    Ok(Json(json!({ "areas": areas, "countries": countries, "disasters": disasters, "coordinates": coordinates })))
 }
