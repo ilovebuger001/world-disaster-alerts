@@ -19,6 +19,7 @@ const SHELL = [
   "assets/theme.js",
   "assets/icons.js",
   "assets/detail.js",
+  "assets/unmapped.js",
   "assets/i18n/th.js",
   "assets/i18n/en.js",
   "assets/icon.svg"

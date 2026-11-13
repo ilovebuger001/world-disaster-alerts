@@ -25,6 +25,11 @@ jobs:
           python-version: "3.12"
       - name: Format
         run: cargo fmt --check
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - name: Dependency audit (RustSec)
+        run: cargo audit --deny warnings || cargo audit
       - name: Build
         run: cargo build --locked --all-targets
       - name: Test
@@ -54,6 +59,12 @@ jobs:
           WDA_CONFIG=e2e/app.e2e.toml ./target/release/wda-server > /tmp/wda-e2e/server.log 2>&1 &
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/health/ready && break; sleep 1; done
           python3 e2e/test_e2e.py http://127.0.0.1:8080 || (tail -50 /tmp/wda-e2e/server.log; exit 1)
+      - name: Load test (real server, 4000 requests, 32 concurrent)
+        run: python3 e2e/load_test.py http://127.0.0.1:8080 4000 32
+      - name: Metrics endpoint
+        run: curl -fsS http://127.0.0.1:8080/health/metrics | grep -E '^wda_(live_alerts|api_requests_total|source_live)'
+      - name: Backup and restore drill
+        run: bash e2e/backup_restore.sh
       - name: Live smoke test (real USGS feed)
         continue-on-error: true
         run: |
@@ -72,3 +83,30 @@ jobs:
           name: wda-server-linux-x86_64
           path: backend/target/release/wda-server
           retention-days: 7
+
+  docker:
+    # Deployment verification: build the production image, run it, check health,
+    # and prove the production safety checks refuse an unreviewed configuration.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t wda:ci backend
+      - name: Run (development config) and check health
+        run: |
+          docker run -d --name wda -p 8080:8080 -e WDA_BIND=0.0.0.0:8080 wda:ci
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:8080/health/ready && break; sleep 1; done
+          docker exec wda /app/wda-server --healthcheck && echo "container healthcheck OK"
+          curl -fsS http://127.0.0.1:8080/api/v1/contacts/TH | head -c 300; echo
+          curl -fsSI http://127.0.0.1:8080/ | grep -i content-security-policy
+          docker logs wda | tail -5
+      - name: Production config with unreviewed sources must refuse to start
+        run: |
+          cp backend/config/sources.example.toml /tmp/sources.production.toml
+          set +e
+          docker run --rm -v /tmp/sources.production.toml:/app/config/sources.production.toml:ro \
+            -e WDA_CONFIG=/app/config/app.production.example.toml wda:ci > /tmp/prod.log 2>&1
+          code=$?
+          set -e
+          cat /tmp/prod.log | tail -5
+          test $code -ne 0 && grep -qi "review" /tmp/prod.log && echo "OK: refused as expected"

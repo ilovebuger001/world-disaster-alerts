@@ -355,8 +355,13 @@ function renderList() {
           )
           .join("")
       : S.app === "unconfigured" ? "" : `<p>${esc(T.listEmpty)}</p>`) +
-    (S.nextCursor && !S.fromCache ? `<button class="more" id="more">${T.more}</button>` : "");
+    (S.nextCursor && !S.fromCache ? `<button class="more" id="more">${T.more}</button>` : "") +
+    (backendConfigured() && !S.fromCache
+      ? `<details class="unmapped" id="unmapped"><summary>${esc(T.unmapped)} <span id="unmappedCount"></span></summary><p class="mt">${esc(T.unmappedNote)}</p><input id="unmappedQ" type="search" placeholder="${esc(T.unmappedFilter)}" maxlength="64"><div id="unmappedList"></div></details>`
+      : "");
   $("lclose").onclick = () => openList(false);
+  const um = $("unmapped");
+  if (um) um.addEventListener("toggle", () => um.open && import("./unmapped.js").then((m) => m.mount(openAlert)), { once: true });
   p.querySelectorAll(".item").forEach((b) => (b.onclick = () => openAlert(b.dataset.id, true)));
   const more = $("more");
   if (more) more.onclick = () => refresh({ append: true });

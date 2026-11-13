@@ -61,3 +61,33 @@ fn lifecycle_hazards_test_messages_and_cancel() {
     assert_eq!(o2.changed[0].status, AlertStatus::Cancelled);
     assert!(o2.changed[0].cancelled);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn zone_only_alerts_are_listed_not_hidden() {
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+    let dir = tempfile::tempdir().unwrap();
+    let mut app: wda::config::AppConfig = toml::from_str(include_str!("../config/app.toml")).unwrap();
+    app.data_dir = dir.path().to_path_buf();
+    let sources: wda::ingest::source_registry::SourcesFile = toml::from_str(include_str!("../config/sources.example.toml")).unwrap();
+    let gazetteer = toml::from_str(include_str!("../config/gazetteer.toml")).unwrap();
+    let l = wda::config::Loaded { app, sources: sources.sources, mapping: mapping(), gazetteer, reference: reference() };
+    let running = wda::app::start(&l, false).unwrap();
+    let msgs = nws::parse("nws-alerts-active", "https://api.weather.gov/alerts/active", &fixture("active.json"), NOW_MS).unwrap().messages;
+    running.writer.ingest("nws-alerts-active", "US National Weather Service", msgs, Default::default()).await.unwrap();
+    let router = wda::app::router(running.state.clone(), None);
+    let get = |u: &str| axum::http::Request::builder().uri(u).body(axum::body::Body::empty()).unwrap();
+    let res = router.clone().oneshot(get("/api/v1/alerts-unmapped")).await.unwrap();
+    let b: serde_json::Value = serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap();
+    assert_eq!(b["total"], 1, "the zone-only winter storm warning is listed");
+    assert!(b["items"][0]["headline"].as_str().unwrap().contains("Winter Storm"));
+    // Jurisdiction: NWS is a national warning issuer for the US → US contacts in details.
+    let id = b["items"][0]["alert_id"].as_str().unwrap().to_string();
+    let res = router.clone().oneshot(get(&format!("/api/v1/alerts/{id}"))).await.unwrap();
+    let d: serde_json::Value = serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap();
+    assert_eq!(d["jurisdiction"]["country_code"], "US");
+    assert_eq!(d["country_contacts"]["contacts"][0]["tel_uri"], "tel:911");
+    let res = router.oneshot(get("/api/v1/alerts-unmapped?q=bighorn")).await.unwrap();
+    let b: serde_json::Value = serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap();
+    assert_eq!(b["total"], 1);
+}
