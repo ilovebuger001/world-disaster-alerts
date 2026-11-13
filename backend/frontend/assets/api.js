@@ -54,6 +54,10 @@ export const api = {
   meta: () => getJson("/api/v1/meta"),
   sources: () => getJson("/api/v1/sources"),
   detail: (id) => getJson("/api/v1/alerts/" + encodeURIComponent(id)),
+  contact: (code) => getJson("/api/v1/contacts/" + encodeURIComponent(code)),
+  unmapped: (offset, q) => getJson("/api/v1/alerts-unmapped?" + new URLSearchParams({ offset: String(offset || 0), limit: "50", ...(q ? { q } : {}) }).toString()),
+  related: (id) => getJson("/api/v1/alerts/" + encodeURIComponent(id) + "/related"),
+  translate: (id, lang) => getJson("/api/v1/alerts/" + encodeURIComponent(id) + "/translate?" + new URLSearchParams({ lang }).toString()),
   facilities: (id) => getJson("/api/v1/alerts/" + encodeURIComponent(id) + "/facilities"),
   // Without a data server (e.g. a static Pages mirror) the same reviewed
   // reference files are published next to the page, so the directory still works.

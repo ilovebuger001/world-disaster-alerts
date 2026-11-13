@@ -93,7 +93,8 @@ const CERTAINTY: &[&str] = &["Observed", "Likely", "Possible", "Unlikely", "Unkn
 /// returned as `Err` items.
 pub fn parse_cap_document(body: &[u8], limits: &CapLimits) -> Result<Vec<Result<CapMessage, CapError>>, CapError> {
     let mut reader = NsReader::from_reader(body);
-    reader.config_mut().trim_text(true);
+    // Text is trimmed per element at End: since quick-xml 0.38, entity references
+    // arrive as separate events, so per-event trimming would eat inner spaces.
     reader.config_mut().expand_empty_elements = true;
 
     let mut buf = Vec::new();
@@ -170,9 +171,27 @@ pub fn parse_cap_document(body: &[u8], limits: &CapLimits) -> Result<Vec<Result<
                     }
                 }
             }
+            Event::GeneralRef(r) => {
+                if in_alert.is_some() {
+                    let s = match r.resolve_char_ref().map_err(|e| CapError::Xml(e.to_string()))? {
+                        Some(ch) => ch.to_string(),
+                        None => {
+                            let name = r.decode().map_err(|e| CapError::Xml(e.to_string()))?;
+                            // Only the five predefined XML entities; DTD entities are rejected.
+                            quick_xml::escape::resolve_xml_entity(&name)
+                                .ok_or_else(|| CapError::Xml(format!("undefined entity &{name};")))?
+                                .to_string()
+                        }
+                    };
+                    if text.len() + s.len() > limits.max_text_bytes {
+                        return Err(CapError::Limit("text size"));
+                    }
+                    text.push_str(&s);
+                }
+            }
             Event::Text(t) => {
                 if in_alert.is_some() {
-                    let s = t.unescape().map_err(|e| CapError::Xml(e.to_string()))?;
+                    let s = t.decode().map_err(|e| CapError::Xml(e.to_string()))?;
                     if text.len() + s.len() > limits.max_text_bytes {
                         return Err(CapError::Limit("text size"));
                     }
@@ -195,7 +214,7 @@ pub fn parse_cap_document(body: &[u8], limits: &CapLimits) -> Result<Vec<Result<
                     out.push(finish(b));
                     path.clear();
                 } else if let Some((_, b)) = &mut in_alert {
-                    let value = std::mem::take(&mut text);
+                    let value = std::mem::take(&mut text).trim().to_string();
                     let p: Vec<&str> = path.iter().map(String::as_str).collect();
                     assign(b, &p, value, &mut pair_name, &mut pair_value, limits);
                     path.pop();

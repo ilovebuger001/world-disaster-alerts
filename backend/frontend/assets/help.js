@@ -47,11 +47,17 @@ function guideBody(g) {
 }
 
 /** Guide for one hazard, for the alert detail panel (compact) or the Help screen. */
-export async function guideHtml(hazard, compact) {
+/** Best reviewed guide: the reader's language and country first, never a made-up translation. */
+export function pickGuide(list, hazard, lang, country) {
+  const all = (list || []).filter((x) => x.hazard === hazard);
+  const l = (g) => g.language === lang, c = (g) => country && g.jurisdiction === country;
+  return all.find((g) => l(g) && c(g)) || all.find(l) || all.find(c) || all[0] || null;
+}
+
+export async function guideHtml(hazard, compact, country) {
   const g = await getGuides();
   if (!g) return `<p class="mt">${esc(T.serverDown)}</p>`;
-  const map = { cyclone: "cyclone", storm: "storm" };
-  const found = (g.data.guides || []).find((x) => x.hazard === (map[hazard] || hazard));
+  const found = pickGuide(g.data.guides, hazard, LANG, country || prefs.get("country", ""));
   const stale = g.fromCache ? `<p class="note">${esc(T.dirOffline)} ${esc(fmtTime(g.saved_at_ms))}</p>` : "";
   if (!found) return `${stale}<p class="mt">${esc(T.guideUnavailable)}</p>`;
   if (compact) return `${stale}<details><summary>${esc(found.title)}</summary>${guideBody(found)}</details>`;
@@ -63,7 +69,8 @@ async function renderGuides(body) {
   const g = await getGuides();
   if (!g) return (body.innerHTML = `<p class="note warn">${esc(T.dirUnavailable)}</p>`);
   const d = g.data;
-  const all = [...(d.guides || []).map((x) => ({ h: x.hazard, g: x })), ...(d.unavailable || []).map((u) => ({ h: u.hazard, u }))];
+  const hazards = [...new Set((d.guides || []).map((x) => x.hazard))];
+  const all = [...hazards.map((h) => ({ h, g: pickGuide(d.guides, h, LANG, prefs.get("country", "")) })), ...(d.unavailable || []).map((u) => ({ h: u.hazard, u }))];
   all.sort((a, b) => HZ_ORDER.indexOf(a.h) - HZ_ORDER.indexOf(b.h));
   body.innerHTML =
     (g.fromCache ? `<p class="note">${esc(T.dirOffline)} ${esc(fmtTime(g.saved_at_ms))}</p>` : "") +
@@ -78,7 +85,7 @@ async function renderGuides(body) {
 
 // ---------------------------------------------------------------- directory
 
-function countryCard(c) {
+export function countryCard(c) {
   const head = `<div class="ccard-h"><h3>${esc(c.name)} <span class="sub">${esc(c.code)}</span></h3><span class="cov cov-${esc(c.coverage)}">${esc(T.cov[c.coverage] || c.coverage)}</span></div>`;
   if (!c.contacts.length) return `<div class="ccard">${head}<p class="note warn">${esc(T.noNumbers)}</p></div>`;
   const rows = c.contacts

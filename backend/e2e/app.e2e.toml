@@ -12,4 +12,4 @@ allow_private_destinations = true
 
 [http]
 cors_allowed_origins = []
-rate_limit_per_minute = 2000
+rate_limit_per_minute = 1000000

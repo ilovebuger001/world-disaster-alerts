@@ -96,3 +96,60 @@ pub async fn eligible_alerts(State(st): State<AppState>, Query(q): Query<HashMap
         .collect();
     Ok(Json(json!({ "event_sequence": seq, "radius_km": radius, "min_priority": min, "items": out })))
 }
+
+/// Incident grouping (conservative): other live alerts with the same hazard
+/// group whose areas are within `RELATED_KM` of this alert's area. Presented
+/// as "possibly related", never merged, because official sources do not share
+/// incident identifiers across agencies.
+pub const RELATED_KM: f64 = 150.0;
+
+pub fn related_to(a: &AlertRecord, b: &AlertRecord) -> Option<f64> {
+    if a.alert_id == b.alert_id || a.hazard_type != b.hazard_type || a.hazard_type == "other" || !b.status.is_live() {
+        return None;
+    }
+    let pts: Vec<GeoPoint> = a.geometry_parts.iter().filter_map(rep_point).collect();
+    pts.iter()
+        .filter_map(|p| distance_km(b, p))
+        .fold(None, |m: Option<f64>, d| Some(m.map_or(d, |x| x.min(d))))
+        .filter(|d| *d <= RELATED_KM)
+}
+
+fn rep_point(g: &GeometryPart) -> Option<GeoPoint> {
+    match g {
+        GeometryPart::Point { point } => Some(*point),
+        GeometryPart::Circle { center, .. } => Some(*center),
+        GeometryPart::Polygon { exterior, .. } if !exterior.is_empty() => {
+            let n = exterior.len() as f64;
+            GeoPoint::new(exterior.iter().map(|p| p.lat_deg).sum::<f64>() / n, exterior.iter().map(|p| p.lon_deg).sum::<f64>() / n).ok()
+        }
+        _ => None,
+    }
+}
+
+pub async fn related(State(st): State<AppState>, axum::extract::Path(id): axum::extract::Path<String>) -> Result<Json<Value>, ApiError> {
+    if id.len() > 64 || !id.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err(ApiError::bad_request("invalid_alert_id", "Alert id is invalid."));
+    }
+    let idx = st.index.read().map_err(|_| ApiError::internal())?;
+    let a = idx.alerts.get(&id).cloned().ok_or_else(|| ApiError::not_found("This alert was not found or is no longer available."))?;
+    let mut items: Vec<(f64, &std::sync::Arc<AlertRecord>)> =
+        idx.alerts.values().filter_map(|b| related_to(&a, b).map(|d| (d, b))).collect();
+    items.sort_by(|x, y| x.0.total_cmp(&y.0));
+    let out: Vec<Value> = items
+        .iter()
+        .take(10)
+        .map(|(d, b)| {
+            let v = b.language_variants.first();
+            json!({
+                "alert_id": b.alert_id,
+                "headline": v.and_then(|v| v.headline.clone().or_else(|| v.event.clone())),
+                "hazard_type": b.hazard_type,
+                "display_priority": b.display_priority,
+                "status": b.status,
+                "source_agency": b.source_agency,
+                "distance_km": (d * 10.0).round() / 10.0,
+            })
+        })
+        .collect();
+    Ok(Json(json!({ "alert_id": a.alert_id, "basis": "same hazard group, areas within 150 km, both live", "items": out })))
+}

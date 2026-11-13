@@ -26,6 +26,7 @@ pub fn router(state: AppState, frontend_dir: Option<std::path::PathBuf>) -> Rout
 }
 
 pub fn router_with(state: AppState, frontend_dir: Option<std::path::PathBuf>, http: HttpConfig) -> Router {
+    let metrics = state.metrics.clone();
     let api = Router::new()
         .route("/health/live", get(api::health::live))
         .route("/health/ready", get(api::health::ready))
@@ -43,12 +44,16 @@ pub fn router_with(state: AppState, frontend_dir: Option<std::path::PathBuf>, ht
         .route("/api/v1/geocode", get(api::geocode::geocode))
         .route("/api/v1/geocode/reverse", get(api::geocode::reverse))
         .route("/api/v1/notify/eligible", get(api::notify::eligible_alerts))
+        .route("/api/v1/alerts-unmapped", get(api::alerts::unmapped))
+        .route("/api/v1/alerts/:alert_id/translate", get(api::translate::translate_alert))
+        .route("/api/v1/alerts/:alert_id/related", get(api::notify::related))
+        .route("/health/metrics", get(api::health::metrics))
         .with_state(state);
     let app = match frontend_dir {
         Some(d) if d.is_dir() => api.fallback_service(ServeDir::new(d)),
         _ => api,
     };
-    let edge = Arc::new(Edge::new(http));
+    let edge = Arc::new(Edge::new(http, metrics));
     app.layer(axum::middleware::from_fn_with_state(edge, crate::http::edge))
         .layer(DefaultBodyLimit::max(16 * 1024))
         .layer(TraceLayer::new_for_http())
@@ -104,6 +109,12 @@ pub fn start(loaded: &Loaded, start_ingestion: bool) -> anyhow::Result<Running> 
         }),
         gazetteer: Arc::new(loaded.gazetteer.clone()),
         reference: Arc::new(loaded.reference.clone()),
+        translator: if app.translation.enabled {
+            Some(Arc::new(crate::api::translate::Translator::new(&app.translation, &app.user_agent)?))
+        } else {
+            None
+        },
+        metrics: Arc::new(crate::http::Metrics::default()),
         geocoder: if app.geocoder.enabled {
             Some(Arc::new(crate::api::geocode::Geocoder::new(&app.geocoder, &app.user_agent)?))
         } else {

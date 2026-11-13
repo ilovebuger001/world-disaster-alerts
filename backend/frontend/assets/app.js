@@ -279,7 +279,10 @@ async function loadDetail(id, focus) {
     S.selected.record = d.alert;
     D.renderDetail(d);
     D.loadFacilities(d.alert);
-    D.loadGuideInto(d.alert.hazard_type);
+    D.loadGuideInto(d.alert.hazard_type, d.jurisdiction && d.jurisdiction.country_code);
+    D.loadContacts(d);
+    D.loadRelated(d.alert);
+    D.bindTranslate(d.alert);
     if (S.map) {
       S.map.showGeometry(d.alert.geometry_parts, PRC[d.alert.display_priority] || PRC.unknown);
       const p = (d.alert.geometry_parts || []).map(repPoint).find(Boolean);
@@ -314,6 +317,10 @@ export function closeAlert(fromHistory) {
   }
 }
 $("sheetToggle").onclick = () => $("app").classList.toggle("sheet-full");
+window.addEventListener("hashchange", () => {
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (/^[0-9a-f]{8,64}$/.test(h) && (!S.selected || S.selected.id !== h)) openAlert(h, false);
+});
 window.addEventListener("popstate", () => {
   const h = decodeURIComponent(location.hash.slice(1));
   if (h && /^[0-9a-f]{8,64}$/.test(h)) {
@@ -348,8 +355,13 @@ function renderList() {
           )
           .join("")
       : S.app === "unconfigured" ? "" : `<p>${esc(T.listEmpty)}</p>`) +
-    (S.nextCursor && !S.fromCache ? `<button class="more" id="more">${T.more}</button>` : "");
+    (S.nextCursor && !S.fromCache ? `<button class="more" id="more">${T.more}</button>` : "") +
+    (backendConfigured() && !S.fromCache
+      ? `<details class="unmapped" id="unmapped"><summary>${esc(T.unmapped)} <span id="unmappedCount"></span></summary><p class="mt">${esc(T.unmappedNote)}</p><input id="unmappedQ" type="search" placeholder="${esc(T.unmappedFilter)}" maxlength="64"><div id="unmappedList"></div></details>`
+      : "");
   $("lclose").onclick = () => openList(false);
+  const um = $("unmapped");
+  if (um) um.addEventListener("toggle", () => um.open && import("./unmapped.js").then((m) => m.mount(openAlert)), { once: true });
   p.querySelectorAll(".item").forEach((b) => (b.onclick = () => openAlert(b.dataset.id, true)));
   const more = $("more");
   if (more) more.onclick = () => refresh({ append: true });

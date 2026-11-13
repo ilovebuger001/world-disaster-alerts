@@ -57,7 +57,8 @@ async fn endpoints_and_error_envelope() {
     assert_eq!(b["alert"]["revision"], 1);
     assert_eq!(b["alert"]["language_variants"][0]["language"], "th-TH");
     assert_eq!(b["signature_verified"], false);
-    assert_eq!(b["translations"]["status"], "unavailable");
+    assert_eq!(b["translation_available"], false);
+    assert_eq!(b["jurisdiction"]["basis"], "not_determined", "sample source declares no national jurisdiction");
 
     let (s, b) = get(&app, "/api/v1/alerts?west=0&south=10&east=1&north=5&zoom=3").await;
     assert_eq!(s, 400);

@@ -69,7 +69,9 @@ fn directory_covers_every_iso_country_and_is_honest() {
     assert_eq!(au.coverage, Coverage::Verified);
     assert!(au.contacts.iter().any(|k| k.dial == "000"));
     // EU 112 alone (no national police/ambulance numbers reviewed) is not full coverage.
-    assert_eq!(c.country("DE").unwrap().coverage, Coverage::PartiallyVerified);
+    assert_eq!(c.country("IT").unwrap().coverage, Coverage::PartiallyVerified);
+    assert_eq!(c.country("DE").unwrap().coverage, Coverage::Verified, "national 110/112 reviewed");
+    assert_eq!(c.country("TH").unwrap().coverage, Coverage::Verified);
     let counts = r.coverage_counts();
     assert_eq!(counts.values().sum::<usize>(), c.countries.len());
 }
@@ -122,6 +124,13 @@ fn guides_are_sourced_and_missing_ones_are_explicit() {
     }
     assert!(g.guide("earthquake").is_some());
     assert!(g.guide("drought").is_none());
+    // Language/jurisdiction preference: Thai official guide for Thai users, US guide otherwise.
+    assert_eq!(g.guide_for("flood", Some("th"), Some("TH")).unwrap().jurisdiction, "TH");
+    assert_eq!(g.guide_for("flood", Some("en"), None).unwrap().language, "en");
+    assert_eq!(g.guide_for("earthquake", Some("th"), None).unwrap().language, "en", "no invented Thai earthquake guide");
+    let mut dup = g.clone();
+    dup.guides.push(dup.guides[0].clone());
+    assert!(dup.validate().is_err(), "duplicate hazard/jurisdiction/language");
     assert!(g.unavailable.iter().any(|u| u.hazard == "drought"));
     let mut bad = g.clone();
     bad.guides[0].source_url = "http://insecure".into();
@@ -199,6 +208,8 @@ async fn reference_and_notification_endpoints() {
 
     let (s, _, b) = req(&app, get("/api/v1/guides/flood")).await;
     assert_eq!((s, b["status"].as_str()), (200, Some("available")));
+    let (_, _, b) = req(&app, get("/api/v1/guides/flood?lang=th&country=TH")).await;
+    assert_eq!(b["guide"]["language"], "th");
     let (s, _, b) = req(&app, get("/api/v1/guides/drought")).await;
     assert_eq!((s, b["status"].as_str()), (200, Some("unavailable")));
     let (s, _, _) = req(&app, get("/api/v1/guides/..%2Fetc")).await;
@@ -239,6 +250,30 @@ async fn reference_and_notification_endpoints() {
     let mut x = (*rec).clone();
     x.display_priority = DisplayPriority::Information;
     assert!(wda::api::notify::eligible(&x, &p, 10.0, DisplayPriority::Warning, NOW_MS).is_none());
+
+    // Possibly-related incidents: same hazard, nearby, live; never itself.
+    let mut twin = (*rec).clone();
+    twin.alert_id = "f".repeat(32);
+    assert_eq!(wda::api::notify::related_to(&rec, &twin), Some(0.0));
+    assert!(wda::api::notify::related_to(&rec, &rec).is_none());
+    let mut other = twin.clone();
+    other.hazard_type = "heat".into();
+    assert!(wda::api::notify::related_to(&rec, &other).is_none());
+    let (s, _, b) = req(&app, get(&format!("/api/v1/alerts/{id}/related"))).await;
+    assert_eq!((s, b["items"].as_array().unwrap().len()), (200, 0));
+
+    // Translation disabled: honest 501, no fake output.
+    let (s, _, b) = req(&app, get(&format!("/api/v1/alerts/{id}/translate?lang=en"))).await;
+    assert_eq!((s, b["error"]["code"].as_str()), (501, Some("translation_unavailable")));
+    let (s, _, _) = req(&app, get(&format!("/api/v1/alerts/{id}/translate?lang=EN1"))).await;
+    assert_eq!(s, 400);
+
+    // Metrics (development: no token needed).
+    let res = app.clone().oneshot(get("/health/metrics")).await.unwrap();
+    assert_eq!(res.status(), 200);
+    let text = String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+    assert!(text.contains("wda_live_alerts 1"), "{text}");
+    assert!(text.contains("wda_api_requests_total"));
 
     // Search: coordinates and countries.
     let (_, _, b) = req(&app, get("/api/v1/search?q=13.75,100.5")).await;
@@ -351,4 +386,21 @@ fn production_config_guards() {
     app.geocoder.enabled = true;
     app.geocoder.min_interval_ms = 200;
     assert!(validate(&app, &[], &m).is_err(), "public Nominatim limit");
+}
+
+#[test]
+fn jurisdiction_only_from_national_issuing_authority() {
+    let j = jurisdiction_of(Some("warning_issuer"), Some("national"), Some("us"));
+    assert_eq!(j.country_code.as_deref(), Some("US"));
+    assert!(jurisdiction_of(Some("scientific_monitor"), Some("national"), Some("US")).country_code.is_none(), "global catalog");
+    assert!(jurisdiction_of(Some("warning_issuer"), Some("provincial"), Some("TH")).country_code.is_none());
+    assert!(jurisdiction_of(Some("warning_issuer"), Some("national"), Some("USA")).country_code.is_none());
+}
+
+#[test]
+fn translation_language_codes() {
+    assert!(wda::api::translate::valid_lang("th"));
+    assert!(!wda::api::translate::valid_lang("TH"));
+    assert!(!wda::api::translate::valid_lang("t"));
+    assert!(!wda::api::translate::valid_lang("../x"));
 }

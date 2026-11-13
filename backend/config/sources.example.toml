@@ -37,6 +37,41 @@ adapter_version = "usgs_geojson/1"
 coverage_state = "integrated"
 onboarding_state = "legal_review_pending"
 
+[[sources]]
+source_id = "nws-alerts-active"
+agency_name = "U.S. National Weather Service (NOAA)"
+country_or_region = "United States and territories, US coastal/marine zones"
+official_homepage = "https://www.weather.gov/"
+feed_url = "https://api.weather.gov/alerts/active"
+format = "geojson_nws"
+hazard_types = ["flood", "storm", "tornado", "cyclone", "winter", "heat", "wildfire", "tsunami", "other"]
+geographic_coverage = "US states, territories and marine zones; zone-based alerts carry UGC/SAME codes without polygons"
+poll_interval_seconds = 60
+request_timeout_seconds = 25
+max_response_bytes = 33554432
+expected_freshness_seconds = 600
+terms_or_redistribution_notes = "NWS information is a US Government work and generally public domain; the API requires an identifying User-Agent. Formal rights review not yet recorded by the owner."
+adapter_name = "nws_geojson"
+enabled = true
+publisher_class = "national"
+authority_role = "warning_issuer"
+jurisdiction_id = "US"
+jurisdiction_level = "national"
+source_language = ["en", "es"]
+source_timezone = "UTC"
+update_delivery_model = "pull"
+cadence_evidence_url = "https://www.weather.gov/documentation/services-web-api"
+cache_policy = "provider-specific"
+authentication = "none"
+terms_url = "https://www.weather.gov/disclaimer"
+redistribution_status = "review_pending"
+commercial_use_allowed = "unknown"
+adaptation_allowed = "unknown"
+attribution_template = "Source: U.S. National Weather Service"
+adapter_version = "nws_geojson/1"
+coverage_state = "integrated"
+onboarding_state = "legal_review_pending"
+
 # Template for a national CAP 1.2 feed. Disabled until every onboarding
 # review in spec §4.6 has passed and the endpoint has been verified.
 [[sources]]

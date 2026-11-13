@@ -1,0 +1,9 @@
+{"type":"FeatureCollection","features":[
+{"id":"https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.test.001.2","type":"Feature",
+ "geometry":{"type":"Polygon","coordinates":[[[-97.5,35.2],[-97.1,35.2],[-97.1,35.5],[-97.5,35.5],[-97.5,35.2]]]},
+ "properties":{"id":"urn:oid:2.49.0.1.840.0.test.001.2","areaDesc":"Cleveland, OK; Oklahoma, OK","geocode":{"UGC":["OKC027"]},
+  "references":[{"@id":"https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.test.001.1","identifier":"urn:oid:2.49.0.1.840.0.test.001.1","sender":"w-nws.webmaster@noaa.gov","sent":"2026-11-12T19:00:00-06:00"}],
+  "sent":"2026-11-12T19:30:00-06:00","effective":"2026-11-12T19:30:00-06:00","expires":"2099-01-01T00:00:00-06:00","status":"Actual","messageType":"Cancel",
+  "category":"Met","severity":"Minor","certainty":"Observed","urgency":"Past","event":"Tornado Warning","sender":"w-nws.webmaster@noaa.gov",
+  "senderName":"NWS Norman OK","headline":"The Tornado Warning has been cancelled","description":"The storm has weakened.","response":"AllClear","language":"en-US"}}
+]}

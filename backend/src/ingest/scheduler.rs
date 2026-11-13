@@ -87,6 +87,9 @@ pub async fn poll_once(rt: &IngestRuntime, src: &SourceConfig) -> Duration {
                 SourceFormat::GeojsonUsgs => super::usgs::parse(&src.source_id, &src.feed_url, &bytes, fetched)
                     .map(|b| (b.messages, b.rejected))
                     .map_err(|e| e.to_string()),
+                SourceFormat::GeojsonNws => super::nws::parse(&src.source_id, &src.feed_url, &bytes, fetched)
+                    .map(|b| (b.messages, b.rejected))
+                    .map_err(|e| e.to_string()),
             };
             match parsed {
                 Ok((messages, rejected)) => {

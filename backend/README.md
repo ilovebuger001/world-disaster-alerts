@@ -1,27 +1,27 @@
 # World Disaster Alerts — Rust backend + map frontend
 
-Implementation of the **World Disaster Alerts Rev.2.9 Final Engineering Specification**,
-following the specification's own implementation order (§16). This is an
-implementation of the first phases — **not** a production-qualified release.
+Release **Rev.3**, implementing the **World Disaster Alerts Rev.2.9 Final Engineering
+Specification** (the specification keeps its own revision number; "Rev.3" is this
+code release). Status is reported honestly below; see `../docs/` for deployment,
+security and data coverage.
 
-## Phase status (spec §16)
+## Status
 
-| Phase | Status | Evidence |
+| Area | Status | Evidence |
 |---|---|---|
-| 1 — Reliable core | ✅ implemented | `tests/cap_lifecycle.rs`, `tests/storage_recovery.rs`, CI live smoke test |
-| 2 — Realtime and geography | ✅ implemented | `tests/antimeridian.rs`, `tests/sse_replay.rs`, `tests/api.rs` |
-| 3 — Frontend and offline mode | ✅ implemented (browser-tested against a mock API; physical-device qualification §89 not done) | `frontend/` |
-| 4 — AI enrichment | ⛔ not started (needs an AI provider + keys; spec says add last) | API returns `translations.status = "unavailable"` |
-| 5 — Production hardening | ⛔ not started (reverse proxy/HTTPS, metrics dashboards, backup/restore drills, load/soak tests, runbooks) | `Dockerfile` only |
+| Reliable core (CAP/USGS/NWS ingestion, lifecycle, storage) | ✅ | `tests/cap_lifecycle.rs`, `tests/nws.rs`, `tests/storage_recovery.rs` |
+| Realtime and geography (viewport, clustering, SSE replay) | ✅ | `tests/antimeridian.rs`, `tests/sse_replay.rs`, `tests/api.rs` |
+| Frontend (MapLibre/OpenFreeMap), offline shell | ✅ | Playwright e2e in CI (desktop + mobile) |
+| Emergency directory, guides, event-linked facilities | ✅ code; data coverage partial | `tests/reference.rs`, `../docs/DATA.md` |
+| Jurisdiction matching (national issuing authority only) | ✅ | `tests/reference.rs`, `tests/nws.rs` |
+| Incident grouping | ✅ conservative "possibly related" (same hazard, ≤150 km, live) | `tests/reference.rs` |
+| Notification eligibility + in-page notifications + Web Audio tone | ✅ (page open only) | `tests/reference.rs`, `frontend/assets/notify.js` |
+| Machine translation | ✅ code (LibreTranslate-compatible, off by default; needs a provider) | `src/api/translate.rs` |
+| Web Push / background notifications | ⛔ not implemented (needs VAPID keys + crypto dependencies) | — |
+| Metrics, load test, backup/restore drill, Docker verification | ✅ in CI | `.github/workflows/ci.yml`, `e2e/` |
+| Public deployment | ⛔ not done (needs a server, domain and source approvals) | `../docs/DEPLOYMENT.md` |
 
-Exit conditions:
-* **Phase 1** — CAP updates/cancellations and USGS updates are idempotent, persisted and correct after restart: `storage_recovery::lifecycle_survives_restart_and_is_idempotent`.
-* **Phase 2** — a client can disconnect, reconnect, replay missing events, or receive a reset and resynchronize: `sse_replay::*`.
-
-Not yet implemented from later revisions: official facilities domain (§70–74), critical-zone
-notification & Web Push (§79–80), Web Audio engine (§81), incident grouping (§63.4),
-jurisdiction/authority matching (§77), metrics/OpenTelemetry (§86). No CAP digital
-signature verification is performed, and the API never claims it.
+No CAP digital signature verification is performed, and the API never claims it.
 
 ## What runs
 

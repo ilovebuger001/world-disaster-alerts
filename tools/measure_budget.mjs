@@ -12,7 +12,7 @@ const kib = (n) => (n / 1024).toFixed(1) + " KiB";
 const shell = ["index.html", "assets/app.css", "assets/theme.js"];
 // Before the first list render: the app core plus ONE language catalog (Thai is the larger one).
 const firstJs = ["assets/app.js", "assets/api.js", "assets/store.js", "assets/i18n.js", "assets/icons.js", "assets/i18n/th.js"];
-const lazy = ["assets/map.js", "assets/detail.js", "assets/help.js", "assets/notify.js", "assets/i18n/en.js"];
+const lazy = ["assets/map.js", "assets/detail.js", "assets/unmapped.js", "assets/help.js", "assets/notify.js", "assets/i18n/en.js"];
 const rows = [
   ["Shell (HTML + CSS + theme)", sum(shell), 20 * 1024],
   ["Core (shell + JS before first list render)", sum(shell) + sum(firstJs), 48 * 1024],

@@ -11,7 +11,7 @@ use serde_json::{json, Value};
 
 const CACHE: &str = "public, max-age=3600";
 
-fn country_json(c: &Country) -> Value {
+pub fn country_json(c: &Country) -> Value {
     let mut v = serde_json::to_value(c).unwrap_or(Value::Null);
     if let Some(list) = v.get_mut("contacts").and_then(Value::as_array_mut) {
         for (item, k) in list.iter_mut().zip(&c.contacts) {
@@ -51,13 +51,19 @@ pub async fn guides(State(st): State<AppState>) -> impl IntoResponse {
     ([(header::CACHE_CONTROL, CACHE)], Json(serde_json::to_value(&st.reference.guides).unwrap_or(Value::Null)))
 }
 
-pub async fn guide(State(st): State<AppState>, Path(hazard): Path<String>) -> Result<impl IntoResponse, ApiError> {
+pub async fn guide(
+    State(st): State<AppState>,
+    Path(hazard): Path<String>,
+    axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<impl IntoResponse, ApiError> {
     if hazard.len() > 40 || !hazard.bytes().all(|b| b.is_ascii_lowercase() || b == b'_') {
         return Err(ApiError::bad_request("invalid_hazard", "Hazard must be a lowercase identifier."));
     }
     let g = &st.reference.guides;
-    let body = match g.guide(&hazard) {
-        Some(x) => json!({ "status": "available", "notice": g.notice, "guide": x }),
+    let short =
+        |k: &str| q.get(k).map(String::as_str).filter(|v| v.len() <= 8 && v.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-'));
+    let body = match g.guide_for(&hazard, short("lang"), short("country")) {
+        Some(x) => json!({ "status": "available", "notice": g.notice, "guide": x, "alternatives": g.guides_for(&hazard).len() - 1 }),
         None => {
             let reason = g
                 .unavailable

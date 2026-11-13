@@ -218,7 +218,7 @@ pub async fn fetch_once(
     }
     let accept = match src.format {
         SourceFormat::Cap => "application/cap+xml, application/xml;q=0.9, text/xml;q=0.8",
-        SourceFormat::GeojsonUsgs => "application/geo+json, application/json;q=0.9",
+        SourceFormat::GeojsonUsgs | SourceFormat::GeojsonNws => "application/geo+json, application/json;q=0.9",
     };
     let mut req = client.get(url).timeout(Duration::from_secs(src.request_timeout_seconds)).header(reqwest::header::ACCEPT, accept);
     if let Some(e) = etag {

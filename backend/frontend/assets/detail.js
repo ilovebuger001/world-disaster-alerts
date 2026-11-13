@@ -2,7 +2,8 @@
 // do first; then impacts, areas, guidance, event-linked facilities, updates and
 // sources; technical CAP/ingestion fields last, collapsed.
 import { api } from "./api.js";
-import { T, fmtTime } from "./i18n.js";
+import { T, LANG, fmtTime } from "./i18n.js";
+import { prefs } from "./store.js";
 import { PRC, FAC, glyph } from "./icons.js";
 import { esc, closeBtn, safeUrl, state as S, closeAlert } from "./app.js";
 
@@ -63,12 +64,20 @@ export function renderDetail(d) {
   ${areas.length ? `<div class="sec"><h2>${T.areas}</h2><p>${esc(areas.join(" · "))}</p><div class="mt">${hasGeom ? T.geomOfficial : T.geomNone}</div></div>` : `<div class="sec"><div class="mt">${hasGeom ? T.geomOfficial : T.geomNone}</div></div>`}
   <div class="sec" id="guideSec"><h2>${T.guidance}</h2><p class="mt">${esc(T.loading)}</p></div>
   <div class="sec" id="facSec"><h2>${T.facilities}</h2><p class="mt">${esc(T.loading)}</p></div>
+  <div class="sec" id="ctSec"></div>
+  <div class="sec" id="relSec"><h2>${T.related}</h2><p class="mt">${esc(T.loading)}</p></div>
   <div class="sec"><h2>${T.updates}</h2><p>${T.revision} ${a.revision}${a.message_history && a.message_history.length ? ` · ${a.message_history.length}` : ""}</p></div>
   <div class="sec"><h2>${T.sources}</h2>
     ${src ? `<a class="srcbtn" href="${esc(src)}" target="_blank" rel="noopener noreferrer">${T.openSrc} ↗</a><div class="mt brk">${esc(src)}</div>` : ""}
     ${d.source && safeUrl(d.source.official_homepage) ? `<div class="mt"><a href="${esc(safeUrl(d.source.official_homepage))}" target="_blank" rel="noopener noreferrer">${esc(d.source.agency_name)}</a>${d.source.attribution ? " · " + esc(d.source.attribution) : ""}</div>` : ""}
   </div>
-  <div class="sec"><h2>${T.translation}</h2><div class="mt">${T.trUnavailable}</div></div>
+  <div class="sec" id="trSec"><h2>${T.translation}</h2>${
+    d.translation_available
+      ? (a.language_variants || []).some((v) => String(v.language || "").toLowerCase().startsWith(LANG))
+        ? `<div class="mt">${esc(T.trSame)}</div>`
+        : `<button class="menuitem" id="trBtn" type="button">${esc(T.trButton)}</button><div id="trOut"></div>`
+      : `<div class="mt">${esc(T.trOff)}</div>`
+  }</div>
   <details class="sec tech"><summary>${T.technical}</summary>
     <dl class="kv">
       <dt>${T.hazard}</dt><dd>${esc(a.hazard_raw)}</dd>
@@ -115,10 +124,82 @@ export async function loadFacilities(a) {
       : `<p class="mt">${esc(body.status === "event_not_active" ? T.facInactive : T.facNone)}</p>`);
 }
 
-export async function loadGuideInto(hazard) {
+export async function loadGuideInto(hazard, country) {
   const { guideHtml } = await import("./help.js");
-  const html = await guideHtml(hazard, true);
+  const html = await guideHtml(hazard, true, country);
   const sec = $("guideSec");
   if (sec && S.selected && S.selected.record && S.selected.record.hazard_type === hazard) sec.innerHTML = `<h2>${T.guidance}</h2>${html}`;
 }
 
+
+/** Emergency numbers: the issuing authority's country when the server could
+ * determine it; otherwise the country the user chose in Help. Never guessed. */
+export async function loadContacts(d) {
+  const sec = $("ctSec");
+  if (!sec) return;
+  const { countryCard } = await import("./help.js");
+  let html;
+  if (d.country_contacts) {
+    html = `<h2>${esc(T.contactsFor)} ${esc(d.country_contacts.name)}</h2>${countryCard(d.country_contacts)}`;
+  } else {
+    const mine = prefs.get("country", "");
+    let c = null;
+    if (mine) {
+      try {
+        c = (await api.contact(mine)).country;
+      } catch {}
+    }
+    html = c
+      ? `<h2>${esc(T.contactsMine)}</h2><p class="mt">${esc(T.contactsUnknown)}</p>${countryCard(c)}`
+      : `<h2>${esc(T.tabEmergency)}</h2><p class="mt">${esc(T.contactsUnknown)}</p><button class="menuitem" id="ctOpen" type="button">${esc(T.openHelpDir)}</button>`;
+  }
+  if (!$("ctSec")) return;
+  $("ctSec").innerHTML = html;
+  const b = $("ctOpen");
+  if (b) b.onclick = async () => (await import("./help.js")).openHelpScreen({ tab: "emergency" });
+}
+
+export async function loadRelated(a) {
+  let body;
+  try {
+    body = await api.related(a.alert_id);
+  } catch {
+    if ($("relSec")) $("relSec").innerHTML = `<h2>${T.related}</h2><p class="mt">${esc(T.serverDown)}</p>`;
+    return;
+  }
+  if (!$("relSec") || !S.selected || S.selected.id !== a.alert_id) return;
+  const items = body.items || [];
+  $("relSec").innerHTML =
+    `<h2>${T.related}</h2>` +
+    (items.length
+      ? `<p class="mt">${esc(T.relatedBasis)}</p>` +
+        items
+          .map(
+            (r) =>
+              `<button class="item" data-rel="${esc(r.alert_id)}"><span class="ico" style="background:${PRC[r.display_priority] || PRC.unknown}">${glyph(r.hazard_type)}</span><span><span class="t">${esc(r.headline || T.hz[r.hazard_type] || r.hazard_type)}</span><br><span class="m">${esc(r.source_agency)} · ${esc(String(r.distance_km))} ${esc(T.km)}</span></span></button>`
+          )
+          .join("")
+      : `<p class="mt">${esc(T.relatedNone)}</p>`);
+  $("relSec").querySelectorAll("[data-rel]").forEach((b) => (b.onclick = () => (location.hash = b.dataset.rel)));
+}
+
+export function bindTranslate(a) {
+  const b = $("trBtn");
+  if (!b) return;
+  b.onclick = async () => {
+    b.disabled = true;
+    const out = $("trOut");
+    out.innerHTML = `<p class="mt">${esc(T.loading)}</p>`;
+    try {
+      const r = await api.translate(a.alert_id, LANG);
+      out.innerHTML =
+        `<p class="note warn">${esc(T.trLabel)} · ${esc(r.provider)}</p>` +
+        Object.entries(r.items || {})
+          .map(([, v]) => `<div class="quote" lang="${esc(r.target_language)}">${esc(v)}</div>`)
+          .join("");
+    } catch (e) {
+      out.innerHTML = `<p class="mt">${esc(e.message || T.trFail)}</p>`;
+      b.disabled = false;
+    }
+  };
+}

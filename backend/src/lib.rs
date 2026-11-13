@@ -1,8 +1,9 @@
-//! World Disaster Alerts — Rust-only backend.
+//! World Disaster Alerts — Rust backend, release Rev.3.
 //!
-//! Implements Phase 1 (reliable core) and Phase 2 (realtime and geography) of
-//! the Rev.2.9 engineering specification. This is an implementation of the
-//! specification's first phases, not a production-qualified release.
+//! Implements the Rev.2.9 engineering specification's reliable core, realtime
+//! and geography phases plus the Rev.3 production work (reference data,
+//! security middleware, notification eligibility, metrics). See README.md for
+//! what is and is not production-qualified.
 
 pub mod api;
 pub mod app;

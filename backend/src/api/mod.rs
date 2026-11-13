@@ -7,3 +7,4 @@ pub mod reference;
 pub mod search;
 pub mod sources;
 pub mod stream;
+pub mod translate;

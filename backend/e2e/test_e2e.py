@@ -92,6 +92,9 @@ def run_desktop(p, alert):
         expect(page.locator("details.tech")).not_to_have_attribute("open", "")
         expect(page.locator("#facSec")).to_contain_text("No official source has linked", timeout=10000)
         expect(page.locator("#guideSec")).to_contain_text("Floods", timeout=10000)
+        expect(page.locator("#ctSec")).to_contain_text("does not identify this event's country", timeout=10000)
+        expect(page.locator("#relSec")).to_contain_text("No possibly related events", timeout=10000)
+        expect(page.locator("#trSec")).to_contain_text("not enabled on this server")
         close.click()
         expect(detail).to_be_hidden()
 

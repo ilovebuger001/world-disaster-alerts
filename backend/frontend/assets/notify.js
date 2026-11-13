@@ -13,6 +13,28 @@ const WINDOW_MS = 10 * 60000;
 const SEEN_MAX = 300;
 
 let timer = null;
+let audio = null; // AudioContext, created only from a user gesture
+
+/** Short two-tone alert generated with Web Audio (no audio file, no autoplay without opt-in). */
+export function playTone() {
+  if (prefs.get("sound", "off") !== "on") return;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === "suspended") audio.resume();
+    const t = audio.currentTime;
+    for (const [i, f] of [[0, 880], [1, 660], [2, 880]]) {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = "square";
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t + i * 0.28);
+      g.gain.exponentialRampToValueAtTime(0.2, t + i * 0.28 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.28 + 0.24);
+      o.connect(g).connect(audio.destination);
+      o.start(t + i * 0.28);
+      o.stop(t + i * 0.28 + 0.26);
+    }
+  } catch {}
+}
 let deps = null;
 let triedLocate = false;
 let shown = []; // timestamps of shown notifications (rate limit)
@@ -67,6 +89,7 @@ export async function check() {
     const title = `${T.pr[i.display_priority] || ""} · ${T.hz[i.hazard_type] || i.hazard_type}`;
     await show(title, `${i.headline || ""}\n${i.source_agency} · ${i.distance_km} ${T.km}`, i.dedupe_key, "#" + i.alert_id);
   }
+  if (now_show.length) playTone();
   const rest = fresh.length - now_show.length;
   if (rest > 0 && room > 0) await show(T.newEvent, `+${rest}`, "wda-more", "#");
 }
@@ -97,10 +120,23 @@ export function settingsHtml() {
   const on = enabled();
   return `<p class="mt">${esc(T.notifyWhy)}</p><p class="mt">${esc(T.notifyLimits)}</p>
     <button class="menuitem" id="notifyToggle" aria-pressed="${on}">${on ? T.notifyOff : T.notifyOn}</button>
-    ${Notification.permission === "denied" ? `<p class="note">${esc(T.notifyDenied)}</p>` : ""}`;
+    ${Notification.permission === "denied" ? `<p class="note">${esc(T.notifyDenied)}</p>` : ""}
+    ${"AudioContext" in window || "webkitAudioContext" in window ? `<p class="mt">${esc(T.soundWhy)}</p>
+    <button class="menuitem" id="soundToggle" aria-pressed="${prefs.get("sound", "off") === "on"}">${prefs.get("sound", "off") === "on" ? T.soundOff : T.soundOn}</button>
+    ${prefs.get("sound", "off") === "on" ? `<button class="menuitem" id="soundTest">${T.soundTest}</button>` : ""}` : ""}`;
 }
 
 export function bind(root, { getMe, rerender }) {
+  const st = root.querySelector("#soundToggle");
+  if (st)
+    st.onclick = () => {
+      const on = prefs.get("sound", "off") !== "on";
+      prefs.set("sound", on ? "on" : "off");
+      if (on) playTone(); // created inside the click: browsers allow audio after a gesture
+      rerender();
+    };
+  const tt = root.querySelector("#soundTest");
+  if (tt) tt.onclick = playTone;
   const b = root.querySelector("#notifyToggle");
   if (!b) return;
   b.onclick = async () => {

@@ -135,7 +135,15 @@ pub async fn detail(State(st): State<AppState>, Path(id): Path<String>) -> Resul
     };
     let rec = rec.ok_or_else(|| ApiError::not_found("This alert was not found or is no longer available."))?;
     let src = st.sources.iter().find(|s| s.source_id == rec.source_id);
+    let j = crate::reference::jurisdiction_of(
+        src.map(|s| s.authority_role.as_str()),
+        src.and_then(|s| s.jurisdiction_level.as_deref()),
+        src.and_then(|s| s.jurisdiction_id.as_deref()),
+    );
+    let contacts = j.country_code.as_deref().and_then(|c| st.reference.contacts.country(c)).map(super::reference::country_json);
     Ok(Json(json!({
+        "jurisdiction": j,
+        "country_contacts": contacts,
         "event_sequence": seq,
         "alert": &*rec,
         "source_freshness": source_freshness(&st, &rec.source_id),
@@ -148,8 +156,55 @@ pub async fn detail(State(st): State<AppState>, Path(id): Path<String>) -> Resul
             "authority_role": s.authority_role,
             "public_redistribution": s.public_redistribution(),
         })),
-        // Phase 4 (AI enrichment) is not implemented: original wording only.
-        "translations": { "status": "unavailable", "items": [] },
+        // Machine translation is on request only (GET .../translate), never replaces the original.
+        "translation_available": st.translator.is_some(),
         "signature_verified": false,
     })))
+}
+
+/// Live alerts that have no mappable area (e.g. NWS zone-based products that
+/// carry only UGC/SAME codes and an area description). They are official and
+/// active, so they are listed rather than hidden; no polygon is invented.
+pub async fn unmapped(State(st): State<AppState>, Query(q): Query<HashMap<String, String>>) -> Result<Json<Value>, ApiError> {
+    let limit = q.get("limit").and_then(|v| v.parse::<usize>().ok()).unwrap_or(50).clamp(1, 200);
+    let offset = q.get("offset").and_then(|v| v.parse::<usize>().ok()).unwrap_or(0).min(100_000);
+    let filter = q.get("q").map(|s| s.trim().to_lowercase()).filter(|s| !s.is_empty() && s.len() <= 64);
+    let idx = st.index.read().map_err(|_| ApiError::internal())?;
+    let mappable = |a: &AlertRecord| {
+        a.geometry_parts.iter().any(|g| {
+            matches!(
+                g,
+                crate::domain::geometry::GeometryPart::Point { .. }
+                    | crate::domain::geometry::GeometryPart::Circle { .. }
+                    | crate::domain::geometry::GeometryPart::Polygon { .. }
+            )
+        })
+    };
+    let mut items: Vec<&std::sync::Arc<AlertRecord>> = idx
+        .alerts
+        .values()
+        .filter(|a| a.status.is_live() && !mappable(a))
+        .filter(|a| match &filter {
+            None => true,
+            Some(f) => a.language_variants.iter().any(|v| {
+                v.area_desc.iter().any(|d| d.to_lowercase().contains(f.as_str()))
+                    || v.headline.as_deref().is_some_and(|h| h.to_lowercase().contains(f.as_str()))
+            }),
+        })
+        .collect();
+    items.sort_by(|x, y| {
+        x.display_priority.rank().cmp(&y.display_priority.rank()).then(y.source_published_at_ms.cmp(&x.source_published_at_ms))
+    });
+    let total = items.len();
+    let page: Vec<Value> = items
+        .iter()
+        .skip(offset)
+        .take(limit)
+        .map(|a| {
+            let f = idx.sources.get(&a.source_id).map(|h| h.freshness()).unwrap_or(FreshnessState::Unknown);
+            summary(a, None, f)
+        })
+        .collect();
+    let next = (offset + page.len() < total).then_some(offset + page.len());
+    Ok(Json(json!({ "total": total, "next_offset": next, "items": page })))
 }
