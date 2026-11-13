@@ -61,15 +61,26 @@ impl Translator {
         if let Some(k) = &self.api_key {
             body["api_key"] = Value::String(k.clone());
         }
-        let res = self.client.post(format!("{}/translate", self.base_url)).json(&body).send().await.map_err(|e| {
-            tracing::warn!(error = %e, "translation request failed");
-            unavailable()
-        })?;
+        let res = self
+            .client
+            .post(format!("{}/translate", self.base_url))
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(serde_json::to_vec(&body).unwrap_or_default())
+            .send()
+            .await
+            .map_err(|e| {
+                tracing::warn!(error = %e, "translation request failed");
+                unavailable()
+            })?;
         if !res.status().is_success() {
             tracing::warn!(status = res.status().as_u16(), "translation provider error");
             return Err(unavailable());
         }
-        let v: Value = res.json().await.map_err(|_| unavailable())?;
+        let bytes = res.bytes().await.map_err(|_| unavailable())?;
+        if bytes.len() > 1024 * 1024 {
+            return Err(unavailable());
+        }
+        let v: Value = serde_json::from_slice(&bytes).map_err(|_| unavailable())?;
         let out: Vec<String> = match v.get("translatedText") {
             Some(Value::Array(a)) => a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect(),
             Some(Value::String(s)) if texts.len() == 1 => vec![s.clone()],
