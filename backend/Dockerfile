@@ -12,6 +12,7 @@ WORKDIR /app
 COPY --from=build /src/target/release/wda-server /app/wda-server
 COPY config ./config
 COPY frontend ./frontend
+COPY reference ./reference
 RUN mkdir -p /app/data && chown -R wda /app/data
 USER wda
 ENV WDA_CONFIG=/app/config/app.toml

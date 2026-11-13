@@ -1,0 +1,82 @@
+# Deployment
+
+## What runs where
+
+| Part | Where | Notes |
+|---|---|---|
+| Rust server (`wda-server`) | One Linux server (Docker) | Holds all logic and any secrets; persistent volume for `wda.redb` |
+| Caddy | Same server | Automatic HTTPS (Let's Encrypt), SSE unbuffered |
+| Frontend | Served by the Rust server at `/`, and optionally GitHub Pages | Pages is static only |
+| Map tiles | OpenFreeMap (`tiles.openfreemap.org`) | Free, no key, OSM attribution shown on the map |
+| Map library | unpkg CDN, pinned `maplibre-gl@5.24.0` | BSD-3-Clause |
+
+GitHub Pages **cannot** run the backend. Publishing only to Pages without a
+server gives an honest "no data server configured" page.
+
+## One server with Docker
+
+```sh
+git clone https://github.com/ilovebuger001/world-disaster-alerts && cd world-disaster-alerts
+cp backend/config/app.production.example.toml backend/config/app.production.toml
+# create backend/config/sources.production.toml with ONLY sources whose review is approved
+WDA_DOMAIN=alerts.example.org docker compose up -d --build
+curl https://alerts.example.org/health/ready
+```
+
+The server refuses to start in production if an enabled source has not passed
+review (`onboarding_state = "approved"` and an approved
+`redistribution_status`, recorded by the owner after reading the source's terms), if CORS uses `*`, if rate limiting is off or if
+private destinations are allowed. **Do not weaken these checks to make it start.**
+
+### Environment overrides
+`WDA_CONFIG`, `WDA_BIND`, `WDA_CORS_ORIGINS` (comma-separated https origins),
+`WDA_TRUST_FORWARDED_FOR`, `WDA_HSTS`, `WDA_GEOCODER_ENABLED`, `RUST_LOG`.
+No secret is required by the current feature set.
+
+## GitHub Pages (optional mirror of the frontend)
+
+1. Settings → Pages → Build and deployment → Source: **GitHub Actions**.
+2. Settings → Secrets and variables → Actions → Variables → `WDA_API_BASE` =
+   `https://alerts.example.org` (the server's public HTTPS origin).
+3. Add the Pages origin to `cors_allowed_origins` on the server.
+4. Run the `pages` workflow (or push to `main`).
+
+## Backups and restore
+
+The only state is `/app/data/wda.redb` (alerts, revisions, event log, source
+health). Reference data (contacts, guides, facilities) is in the repository.
+
+```sh
+# backup (consistent: stop briefly, copy, start)
+docker compose stop wda
+docker run --rm -v world-disaster-alerts_wda-data:/d -v "$PWD":/b debian:bookworm-slim \
+  cp /d/wda.redb /b/wda-$(date +%F).redb
+docker compose start wda
+# restore
+docker compose stop wda
+docker run --rm -v world-disaster-alerts_wda-data:/d -v "$PWD":/b debian:bookworm-slim \
+  cp /b/wda-YYYY-MM-DD.redb /d/wda.redb
+docker compose start wda
+```
+
+Losing the database is not catastrophic: on restart the server re-ingests the
+current feeds; only history older than the feeds is lost.
+
+## Health and logs
+
+* `GET /health/live` — process is up. `GET /health/ready` — database open, index built.
+* Container health check: `wda-server --healthcheck`.
+* Logs are JSON/structured to stdout (`docker compose logs -f wda`). Query strings
+  are not logged at the default `info` level.
+
+## Cost ($0/month target)
+
+| Item | Free option | Limits to check before relying on it |
+|---|---|---|
+| Server | Oracle Cloud Always Free (Ampere A1) or Google Cloud e2-micro free tier | Both require a payment card for sign-up; capacity and terms change — verify on the provider's pricing page before choosing |
+| Domain + HTTPS | A subdomain you already own, or a free dynamic-DNS name; Let's Encrypt via Caddy | Let's Encrypt rate limits |
+| Map tiles | OpenFreeMap public instance | No SLA ("as is"); heavy traffic should self-host OpenFreeMap or use a paid plan |
+| Geocoding | Nominatim public instance (off by default) | ≤1 request/s, no autocomplete, no bulk; heavy use needs a self-hosted Nominatim or paid provider |
+| CI / Pages | GitHub Actions + Pages (public repo) | Fair-use limits |
+
+No paid service is configured. Anything paid needs the owner's approval.

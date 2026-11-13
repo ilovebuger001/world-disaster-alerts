@@ -1,7 +1,12 @@
 // API client: bounded requests, cancellation and stale-response rejection
 // (spec §59 item 5, §64.4).
 
-const base = () => (window.WDA_CONFIG && window.WDA_CONFIG.apiBase) || "";
+// API origin comes from <meta name="wda-api-base">: empty = same origin (served
+// by the Rust server); a URL = that server; "unconfigured" = no backend known.
+const META = document.querySelector('meta[name="wda-api-base"]');
+const RAW = META ? META.content.trim() : "";
+export const backendConfigured = () => RAW !== "unconfigured" && !RAW.startsWith("__");
+const base = () => (backendConfigured() ? RAW.replace(/\/$/, "") : "");
 
 export class ApiError extends Error {
   constructor(status, code, message) {
@@ -11,7 +16,8 @@ export class ApiError extends Error {
   }
 }
 
-async function getJson(path, signal) {
+export async function getJson(path, signal) {
+  if (!backendConfigured()) throw new ApiError(0, "unconfigured", "No data server is configured.");
   const res = await fetch(base() + path, { signal, headers: { Accept: "application/json" } });
   let body = null;
   try {
@@ -22,6 +28,12 @@ async function getJson(path, signal) {
     throw new ApiError(res.status, e.code || "http_" + res.status, e.message || res.statusText);
   }
   return body;
+}
+
+async function staticJson(path) {
+  const res = await fetch(path, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new ApiError(res.status, "http_" + res.status, res.statusText);
+  return res.json();
 }
 
 /** Wraps a request kind so only the newest response is ever applied. */
@@ -42,6 +54,15 @@ export const api = {
   meta: () => getJson("/api/v1/meta"),
   sources: () => getJson("/api/v1/sources"),
   detail: (id) => getJson("/api/v1/alerts/" + encodeURIComponent(id)),
+  facilities: (id) => getJson("/api/v1/alerts/" + encodeURIComponent(id) + "/facilities"),
+  // Without a data server (e.g. a static Pages mirror) the same reviewed
+  // reference files are published next to the page, so the directory still works.
+  contacts: () => (backendConfigured() ? getJson("/api/v1/contacts") : staticJson("reference/emergency_contacts.json")),
+  guides: () => (backendConfigured() ? getJson("/api/v1/guides") : staticJson("reference/guides.json")),
+  geocode: (q, lang) => getJson("/api/v1/geocode?" + new URLSearchParams({ q, lang }).toString()),
+  reverse: (lat, lon) => getJson("/api/v1/geocode/reverse?" + new URLSearchParams({ lat: lat.toFixed(3), lon: lon.toFixed(3) }).toString()),
+  eligible: (lat, lon) =>
+    getJson("/api/v1/notify/eligible?" + new URLSearchParams({ lat: lat.toFixed(2), lon: lon.toFixed(2), radius_km: "50", min_priority: "warning" }).toString()),
   viewportPath(v, f, cursor) {
     const p = new URLSearchParams({
       west: v.west.toFixed(5),

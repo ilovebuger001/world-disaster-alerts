@@ -18,3 +18,13 @@ pub fn geojson(name: &str) -> Vec<u8> {
 
 /// Fixed "now" after all CAP fixture times (2026-11-12T13:00:00+07:00) and before expiry.
 pub const NOW_MS: i64 = 1_794_463_200_000;
+
+pub fn reference() -> wda::reference::Reference {
+    let d = env!("CARGO_MANIFEST_DIR");
+    wda::reference::Reference::load(
+        std::path::Path::new(&format!("{d}/reference/emergency_contacts.json")),
+        std::path::Path::new(&format!("{d}/reference/guides.json")),
+        std::path::Path::new(&format!("{d}/reference/facilities.json")),
+    )
+    .expect("reference data valid")
+}

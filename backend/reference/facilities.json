@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "dataset_version": "2026-11-13",
+  "notice": "Facilities are listed only when an official source links them to a specific event. No official facility feed has been reviewed and enabled yet, so this list is intentionally empty.",
+  "facilities": []
+}

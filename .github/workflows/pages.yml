@@ -1,0 +1,46 @@
+# Publishes the canonical frontend (backend/frontend) to GitHub Pages.
+# GitHub Pages only hosts static files: alert data comes from the Rust server
+# whose public HTTPS origin is set in the repository variable WDA_API_BASE
+# (Settings → Secrets and variables → Actions → Variables). Without it the page
+# is published in an honest "no data server configured" state — never with
+# sample data. The repository's Pages source must be set to "GitHub Actions".
+name: pages
+on:
+  push:
+    branches: [main]
+    paths: ["backend/frontend/**", "backend/reference/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare site
+        env:
+          API_BASE: ${{ vars.WDA_API_BASE }}
+        run: |
+          mkdir -p _site && cp -R backend/frontend/. _site/
+          base="${API_BASE:-unconfigured}"
+          case "$base" in unconfigured|https://*) ;; *) echo "::error::WDA_API_BASE must be an https:// origin"; exit 1;; esac
+          base="${base%/}"
+          sed -i "s#<meta name=\"wda-api-base\" content=\"\">#<meta name=\"wda-api-base\" content=\"${base}\">#" _site/index.html
+          grep -q "wda-api-base\" content=\"${base}\"" _site/index.html
+          mkdir -p _site/reference && cp backend/reference/emergency_contacts.json backend/reference/guides.json _site/reference/
+          touch _site/.nojekyll
+          if grep -RInE 'AIza[0-9A-Za-z_-]{30,}' _site; then echo "::error::API key in site"; exit 1; fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
