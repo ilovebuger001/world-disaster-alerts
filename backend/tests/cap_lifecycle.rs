@@ -173,3 +173,17 @@ fn expiry_is_source_stated_and_upcoming_before_onset() {
     assert_eq!(derive_status(100, Some(0), None, None, false, false), AlertStatus::Active);
     assert_eq!(derive_status(100, Some(0), None, None, true, false), AlertStatus::Cancelled);
 }
+
+#[test]
+fn entity_references_keep_inner_spaces_and_unknown_entities_are_rejected() {
+    let base = String::from_utf8(cap("alert.xml")).unwrap();
+    let start = base.find("<headline>").unwrap() + "<headline>".len();
+    let end = base[start..].find("</headline>").unwrap() + start;
+    let doc = format!("{}  Flood &amp; landslide &#x41;&#66; warning  {}", &base[..start], &base[end..]);
+    let parsed = parse_cap_document(doc.as_bytes(), &CapLimits::default()).unwrap();
+    let c = parsed[0].as_ref().unwrap();
+    assert_eq!(c.infos[0].headline.as_deref(), Some("Flood & landslide AB warning"));
+    let bad = format!("{}Flood &custom; warning{}", &base[..start], &base[end..]);
+    let r = parse_cap_document(bad.as_bytes(), &CapLimits::default());
+    assert!(r.is_err() || r.unwrap()[0].is_err(), "undefined entity must not be silently accepted");
+}
