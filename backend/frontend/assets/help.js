@@ -17,17 +17,20 @@ let prevFocus = null;
 let ctx = {};
 
 async function loadCached(key, fetcher) {
-  try {
-    const data = await fetcher();
-    kvPut(key, data);
-    return { data, saved_at_ms: Date.now(), fromCache: false };
-  } catch {
-    const c = await kvGet(key);
-    return c ? { data: c.value, saved_at_ms: c.saved_at_ms, fromCache: true } : null;
+  if (navigator.onLine !== false) {
+    try {
+      const data = await fetcher();
+      kvPut(key, data);
+      return { data, saved_at_ms: Date.now(), fromCache: false };
+    } catch {}
   }
+  const c = await kvGet(key);
+  return c ? { data: c.value, saved_at_ms: c.saved_at_ms, fromCache: true } : null;
 }
-const getContacts = async () => (contacts && !contacts.fromCache ? contacts : (contacts = await loadCached("contacts", api.contacts)));
-const getGuides = async () => (guides && !guides.fromCache ? guides : (guides = await loadCached("guides", api.guides)));
+// Reuse the in-memory copy only while online; offline always shows the saved copy and its date.
+const fresh = (x) => x && !x.fromCache && navigator.onLine !== false;
+const getContacts = async () => (fresh(contacts) ? contacts : (contacts = await loadCached("contacts", api.contacts)));
+const getGuides = async () => (fresh(guides) ? guides : (guides = await loadCached("guides", api.guides)));
 
 /** Valid dial strings only: 2–15 digits with optional leading +. Never auto-dialled. */
 export function telHref(dial) {
@@ -77,7 +80,7 @@ async function renderGuides(body) {
 
 function countryCard(c) {
   const head = `<div class="ccard-h"><h3>${esc(c.name)} <span class="sub">${esc(c.code)}</span></h3><span class="cov cov-${esc(c.coverage)}">${esc(T.cov[c.coverage] || c.coverage)}</span></div>`;
-  if (!c.contacts.length) return `<div class="ccard">${head}<p class="note warn">${esc(T.noNumbers)}</p>${c.notes ? `<p class="mt">${esc(c.notes)}</p>` : ""}</div>`;
+  if (!c.contacts.length) return `<div class="ccard">${head}<p class="note warn">${esc(T.noNumbers)}</p></div>`;
   const rows = c.contacts
     .map((k) => {
       const href = telHref(k.dial);

@@ -46,9 +46,10 @@ def wait_for_alert(timeout=90):
 
 def test_api_contract():
     s, h, _ = api("/api/v1/meta")
+    h = {k.lower(): v for k, v in h.items()}
     assert s == 200
-    assert "frame-ancestors 'none'" in h.get("Content-Security-Policy", ""), h
-    assert h.get("X-Content-Type-Options") == "nosniff"
+    assert "frame-ancestors 'none'" in h.get("content-security-policy", ""), h
+    assert h.get("x-content-type-options") == "nosniff"
     s, _, c = api("/api/v1/contacts/AU")
     assert s == 200 and c["country"]["contacts"][0]["tel_uri"] == "tel:000"
     s, _, g = api("/api/v1/guides/drought")
@@ -67,6 +68,13 @@ def run_desktop(p, alert):
         expect(page.locator("#statusText")).not_to_have_text(re.compile("Loading"), timeout=20000)
 
     check("desktop: status leaves loading state", status_ready)
+
+    def map_loaded():
+        expect(page.locator(".maplibregl-canvas")).to_be_visible(timeout=30000)
+        expect(page.locator(".maplibregl-ctrl-attrib")).to_contain_text("OpenStreetMap", timeout=15000)
+        expect(page.locator(".pin, .cluster").first).to_be_visible(timeout=20000)
+
+    check("desktop: MapLibre map, OSM attribution and disaster marker", map_loaded)
 
     def list_and_detail():
         page.click("#listBtn")
