@@ -33,9 +33,9 @@
 
 ## Known gaps
 
-* MapLibre is loaded from a CDN without Subresource Integrity yet (CI prints the
-  hashes; add them or self-host the file). `style-src` allows inline styles
-  because marker colours are set inline.
+* MapLibre is loaded from the unpkg CDN with Subresource Integrity (sha384,
+  recomputed and printed by CI). The optional RTL text plugin is loaded without
+  SRI. `style-src` allows inline styles because marker colours are set inline.
 * No Web Push (no VAPID keys provisioned); notifications work only while the
   page is open.
 * CAP digital signatures are not verified (shown as such in the UI).

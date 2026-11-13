@@ -8,23 +8,29 @@ export { PRC, FAC, glyph };
 const ML_VER = "5.24.0";
 const ML_JS = `https://unpkg.com/maplibre-gl@${ML_VER}/dist/maplibre-gl.js`;
 const ML_CSS = `https://unpkg.com/maplibre-gl@${ML_VER}/dist/maplibre-gl.css`;
+// Subresource Integrity for the pinned files (CI recomputes and prints these).
+const ML_JS_SRI = "sha384-5+cfbwT0iiub6VsQAdn6yz16nr6sDiQoHx6tm4O8OVYXHYOxcffFmCJBL0dgdvGp";
+const ML_CSS_SRI = "sha384-uTttxo/aOKbdE5RlD/SPzSDoDmNvGlUYPjONi2MN/b7c9HPSvW07OIuyP7uL6jxK";
 const RTL_PLUGIN = "https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.3.0/dist/mapbox-gl-rtl-text.js";
 const STYLE = { light: "https://tiles.openfreemap.org/styles/liberty", dark: "https://tiles.openfreemap.org/styles/dark" };
 
-function loadCss(href) {
+function loadCss(href, integrity) {
   if (document.querySelector(`link[href="${href}"]`)) return;
   const l = document.createElement("link");
   l.rel = "stylesheet";
   l.href = href;
+  l.integrity = integrity;
+  l.crossOrigin = "anonymous";
   document.head.appendChild(l);
 }
 
 function loadLib() {
   if (window.maplibregl) return Promise.resolve(window.maplibregl);
-  loadCss(ML_CSS);
+  loadCss(ML_CSS, ML_CSS_SRI);
   return new Promise((resolve, reject) => {
     const s = document.createElement("script");
     s.src = ML_JS;
+    s.integrity = ML_JS_SRI;
     s.crossOrigin = "anonymous";
     s.onload = () => (window.maplibregl ? resolve(window.maplibregl) : reject(new Error("lib")));
     s.onerror = () => reject(new Error("lib"));

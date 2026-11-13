@@ -39,8 +39,10 @@ jobs:
         run: |
           if grep -RInE 'AIza[0-9A-Za-z_-]{30,}|sk-[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY' frontend config reference e2e ../tools ../.github; then
             echo "::error::possible secret committed"; exit 1; fi
-      - name: MapLibre SRI (informational)
+      - name: MapLibre SRI matches the pinned hashes
         run: |
+          js=$(curl -fsSL https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js | openssl dgst -sha384 -binary | openssl base64 -A)
+          grep -q "sha384-$js" frontend/assets/map.js || { echo "::error::maplibre-gl.js SRI mismatch: sha384-$js"; exit 1; }
           curl -fsSL https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js | openssl dgst -sha384 -binary | openssl base64 -A | sed 's/^/maplibre-gl.js sha384-/'; echo
           curl -fsSL https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css | openssl dgst -sha384 -binary | openssl base64 -A | sed 's/^/maplibre-gl.css sha384-/'; echo
       - name: End-to-end (real server + Chromium, desktop and mobile)
