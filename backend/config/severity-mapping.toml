@@ -1,7 +1,7 @@
 # Deterministic, versioned display mapping (spec §7). These labels are
 # presentation groupings only; CAP raw values are always kept and shown.
 # Rules are evaluated top to bottom; the first match wins.
-mapping_version = "2026-11-12.1"
+mapping_version = "2026-11-13.1"
 
 # Earthquake catalog events are post-event information (spec §7.1).
 # Magnitude is shown in provider terminology and never converted to a warning.
@@ -57,7 +57,7 @@ any_of = ["hurricane", "typhoon", "cyclone", "tropical storm"]
 hazard_type = "cyclone"
 
 [[hazard_rules]]
-any_of = ["fire"]
+any_of = ["fire", "red flag"]
 hazard_type = "wildfire"
 
 [[hazard_rules]]
@@ -69,5 +69,13 @@ any_of = ["heat"]
 hazard_type = "heat"
 
 [[hazard_rules]]
-any_of = ["thunderstorm", "tornado", "severe weather", "wind", "storm"]
+any_of = ["tornado"]
+hazard_type = "tornado"
+
+[[hazard_rules]]
+any_of = ["winter", "blizzard", "snow", "ice storm", "freeze", "frost", "cold", "wind chill", "avalanche"]
+hazard_type = "winter"
+
+[[hazard_rules]]
+any_of = ["thunderstorm", "severe weather", "wind", "storm"]
 hazard_type = "storm"

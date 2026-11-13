@@ -15,6 +15,8 @@ pub struct SourcesFile {
 pub enum SourceFormat {
     Cap,
     GeojsonUsgs,
+    /// US NWS API alerts (CAP fields in GeoJSON).
+    GeojsonNws,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -124,7 +126,7 @@ impl SourceConfig {
             return Err("feed_url has no host".into());
         }
         match (self.format, self.adapter_name.as_str()) {
-            (SourceFormat::Cap, "cap") | (SourceFormat::GeojsonUsgs, "usgs_geojson") => {}
+            (SourceFormat::Cap, "cap") | (SourceFormat::GeojsonUsgs, "usgs_geojson") | (SourceFormat::GeojsonNws, "nws_geojson") => {}
             _ => return Err(format!("adapter '{}' does not match format", self.adapter_name)),
         }
         if self.poll_interval_seconds < 15 {

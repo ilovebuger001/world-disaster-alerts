@@ -38,4 +38,7 @@ pub struct AppState {
     pub reference: Arc<crate::reference::Reference>,
     /// `None` when address search is disabled in configuration.
     pub geocoder: Option<Arc<crate::api::geocode::Geocoder>>,
+    /// `None` when machine translation is disabled.
+    pub translator: Option<Arc<crate::api::translate::Translator>>,
+    pub metrics: Arc<crate::http::Metrics>,
 }

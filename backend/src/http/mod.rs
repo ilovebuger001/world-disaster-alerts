@@ -10,6 +10,7 @@ use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 /// Content Security Policy for the frontend. Map tiles, styles, glyphs and
@@ -28,15 +29,31 @@ base-uri 'self'; \
 form-action 'self'; \
 frame-ancestors 'none'";
 
+/// Process-wide counters exposed at `/health/metrics` (Prometheus text format).
+#[derive(Default)]
+pub struct Metrics {
+    pub api_requests: AtomicU64,
+    pub api_errors_5xx: AtomicU64,
+    pub api_errors_4xx: AtomicU64,
+    pub rate_limited: AtomicU64,
+}
+
+impl Metrics {
+    pub fn get(c: &AtomicU64) -> u64 {
+        c.load(Ordering::Relaxed)
+    }
+}
+
 pub struct Edge {
     pub cfg: HttpConfig,
     pub limiter: RateLimiter,
+    pub metrics: Arc<Metrics>,
 }
 
 impl Edge {
-    pub fn new(cfg: HttpConfig) -> Self {
+    pub fn new(cfg: HttpConfig, metrics: Arc<Metrics>) -> Self {
         let limiter = RateLimiter::new(cfg.rate_limit_per_minute);
-        Self { cfg, limiter }
+        Self { cfg, limiter, metrics }
     }
 
     fn origin_allowed(&self, origin: &str) -> bool {
@@ -123,8 +140,10 @@ pub async fn edge(State(e): State<Arc<Edge>>, req: Request, next: Next) -> Respo
     }
 
     if is_api {
+        e.metrics.api_requests.fetch_add(1, Ordering::Relaxed);
         if let Some(ip) = client_ip(&req, e.cfg.trust_forwarded_for) {
             if let Err(retry) = e.limiter.check(ip, crate::domain::now_ms()) {
+                e.metrics.rate_limited.fetch_add(1, Ordering::Relaxed);
                 let mut res = ApiError::new(StatusCode::TOO_MANY_REQUESTS, "rate_limited", "Too many requests. Please wait and try again.")
                     .into_response();
                 if let Ok(v) = HeaderValue::from_str(&retry.to_string()) {
@@ -145,6 +164,14 @@ pub async fn edge(State(e): State<Arc<Edge>>, req: Request, next: Next) -> Respo
     }
 
     let mut res = next.run(req).await;
+    if is_api {
+        let code = res.status().as_u16();
+        if code >= 500 {
+            e.metrics.api_errors_5xx.fetch_add(1, Ordering::Relaxed);
+        } else if code >= 400 {
+            e.metrics.api_errors_4xx.fetch_add(1, Ordering::Relaxed);
+        }
+    }
     if let Some(o) = &cors_origin {
         apply_cors(&mut res, o);
     }

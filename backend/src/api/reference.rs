@@ -11,7 +11,7 @@ use serde_json::{json, Value};
 
 const CACHE: &str = "public, max-age=3600";
 
-fn country_json(c: &Country) -> Value {
+pub fn country_json(c: &Country) -> Value {
     let mut v = serde_json::to_value(c).unwrap_or(Value::Null);
     if let Some(list) = v.get_mut("contacts").and_then(Value::as_array_mut) {
         for (item, k) in list.iter_mut().zip(&c.contacts) {

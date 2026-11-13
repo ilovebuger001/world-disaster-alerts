@@ -240,6 +240,30 @@ async fn reference_and_notification_endpoints() {
     x.display_priority = DisplayPriority::Information;
     assert!(wda::api::notify::eligible(&x, &p, 10.0, DisplayPriority::Warning, NOW_MS).is_none());
 
+    // Possibly-related incidents: same hazard, nearby, live; never itself.
+    let mut twin = (*rec).clone();
+    twin.alert_id = "f".repeat(32);
+    assert_eq!(wda::api::notify::related_to(&rec, &twin), Some(0.0));
+    assert!(wda::api::notify::related_to(&rec, &rec).is_none());
+    let mut other = twin.clone();
+    other.hazard_type = "heat".into();
+    assert!(wda::api::notify::related_to(&rec, &other).is_none());
+    let (s, _, b) = req(&app, get(&format!("/api/v1/alerts/{id}/related"))).await;
+    assert_eq!((s, b["items"].as_array().unwrap().len()), (200, 0));
+
+    // Translation disabled: honest 501, no fake output.
+    let (s, _, b) = req(&app, get(&format!("/api/v1/alerts/{id}/translate?lang=en"))).await;
+    assert_eq!((s, b["error"]["code"].as_str()), (501, Some("translation_unavailable")));
+    let (s, _, _) = req(&app, get(&format!("/api/v1/alerts/{id}/translate?lang=EN1"))).await;
+    assert_eq!(s, 400);
+
+    // Metrics (development: no token needed).
+    let res = app.clone().oneshot(get("/health/metrics")).await.unwrap();
+    assert_eq!(res.status(), 200);
+    let text = String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+    assert!(text.contains("wda_live_alerts 1"), "{text}");
+    assert!(text.contains("wda_api_requests_total"));
+
     // Search: coordinates and countries.
     let (_, _, b) = req(&app, get("/api/v1/search?q=13.75,100.5")).await;
     assert_eq!(b["coordinates"]["lat"], 13.75);
@@ -351,4 +375,21 @@ fn production_config_guards() {
     app.geocoder.enabled = true;
     app.geocoder.min_interval_ms = 200;
     assert!(validate(&app, &[], &m).is_err(), "public Nominatim limit");
+}
+
+#[test]
+fn jurisdiction_only_from_national_issuing_authority() {
+    let j = jurisdiction_of(Some("warning_issuer"), Some("national"), Some("us"));
+    assert_eq!(j.country_code.as_deref(), Some("US"));
+    assert!(jurisdiction_of(Some("scientific_monitor"), Some("national"), Some("US")).country_code.is_none(), "global catalog");
+    assert!(jurisdiction_of(Some("warning_issuer"), Some("provincial"), Some("TH")).country_code.is_none());
+    assert!(jurisdiction_of(Some("warning_issuer"), Some("national"), Some("USA")).country_code.is_none());
+}
+
+#[test]
+fn translation_language_codes() {
+    assert!(wda::api::translate::valid_lang("th"));
+    assert!(!wda::api::translate::valid_lang("TH"));
+    assert!(!wda::api::translate::valid_lang("t"));
+    assert!(!wda::api::translate::valid_lang("../x"));
 }

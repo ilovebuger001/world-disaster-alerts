@@ -49,6 +49,26 @@ pub struct AppConfig {
     pub geocoder: GeocoderConfig,
     #[serde(default)]
     pub reference: ReferenceFiles,
+    #[serde(default)]
+    pub translation: TranslationConfig,
+}
+
+/// Optional machine translation through a LibreTranslate-compatible API
+/// (self-hostable, open source). Disabled by default. A key, if the service
+/// needs one, comes only from the `WDA_TRANSLATE_API_KEY` environment variable.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+pub struct TranslationConfig {
+    pub enabled: bool,
+    pub base_url: String,
+    pub provider_name: String,
+    pub max_chars: usize,
+}
+
+impl Default for TranslationConfig {
+    fn default() -> Self {
+        Self { enabled: false, base_url: String::new(), provider_name: "LibreTranslate".into(), max_chars: 6000 }
+    }
 }
 
 /// Edge protections applied by the Rust server itself.
@@ -195,6 +215,10 @@ pub fn apply_env(app: &mut AppConfig) {
     if let Ok(v) = std::env::var("WDA_HSTS") {
         app.http.hsts = v == "1" || v.eq_ignore_ascii_case("true");
     }
+    if let Ok(v) = std::env::var("WDA_TRANSLATE_URL") {
+        app.translation.base_url = v;
+        app.translation.enabled = !app.translation.base_url.is_empty();
+    }
     if let Ok(v) = std::env::var("WDA_GEOCODER_ENABLED") {
         app.geocoder.enabled = v == "1" || v.eq_ignore_ascii_case("true");
     }
@@ -220,6 +244,13 @@ pub fn validate(app: &AppConfig, sources: &[SourceConfig], mapping: &SeverityMap
         }
         if app.http.rate_limit_per_minute == 0 {
             return Err(ConfigError::Invalid("rate limiting must be enabled in production".into()));
+        }
+    }
+    if app.translation.enabled {
+        let u = &app.translation.base_url;
+        let internal = u.starts_with("http://127.0.0.1") || u.starts_with("http://localhost") || u.starts_with("http://libretranslate:");
+        if !(u.starts_with("https://") || internal) {
+            return Err(ConfigError::Invalid("translation.base_url must be https (or a local/compose-internal LibreTranslate)".into()));
         }
     }
     if app.geocoder.enabled && !app.geocoder.base_url.starts_with("https://") {

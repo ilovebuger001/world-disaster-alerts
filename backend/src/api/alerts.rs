@@ -135,7 +135,15 @@ pub async fn detail(State(st): State<AppState>, Path(id): Path<String>) -> Resul
     };
     let rec = rec.ok_or_else(|| ApiError::not_found("This alert was not found or is no longer available."))?;
     let src = st.sources.iter().find(|s| s.source_id == rec.source_id);
+    let j = crate::reference::jurisdiction_of(
+        src.map(|s| s.authority_role.as_str()),
+        src.and_then(|s| s.jurisdiction_level.as_deref()),
+        src.and_then(|s| s.jurisdiction_id.as_deref()),
+    );
+    let contacts = j.country_code.as_deref().and_then(|c| st.reference.contacts.country(c)).map(super::reference::country_json);
     Ok(Json(json!({
+        "jurisdiction": j,
+        "country_contacts": contacts,
         "event_sequence": seq,
         "alert": &*rec,
         "source_freshness": source_freshness(&st, &rec.source_id),
@@ -148,8 +156,8 @@ pub async fn detail(State(st): State<AppState>, Path(id): Path<String>) -> Resul
             "authority_role": s.authority_role,
             "public_redistribution": s.public_redistribution(),
         })),
-        // Phase 4 (AI enrichment) is not implemented: original wording only.
-        "translations": { "status": "unavailable", "items": [] },
+        // Machine translation is on request only (GET .../translate), never replaces the original.
+        "translation_available": st.translator.is_some(),
         "signature_verified": false,
     })))
 }

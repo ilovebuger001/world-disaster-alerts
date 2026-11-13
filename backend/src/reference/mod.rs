@@ -313,6 +313,26 @@ impl FacilitiesFile {
     }
 }
 
+// ------------------------------------------------------------ jurisdiction
+
+/// How the country of an alert was determined. Only an issuing authority's own
+/// national jurisdiction is used; global catalogues (e.g. USGS) never imply a
+/// country, and nothing is guessed from coordinates or language.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct Jurisdiction {
+    pub country_code: Option<String>,
+    pub basis: &'static str,
+}
+
+pub fn jurisdiction_of(authority_role: Option<&str>, level: Option<&str>, id: Option<&str>) -> Jurisdiction {
+    let code = id.filter(|c| c.len() == 2 && c.bytes().all(|b| b.is_ascii_alphabetic())).map(str::to_ascii_uppercase);
+    match (authority_role, level, code) {
+        (Some("warning_issuer"), Some("national"), Some(c)) => Jurisdiction { country_code: Some(c), basis: "issuing_authority_national" },
+        (Some("warning_issuer"), _, _) => Jurisdiction { country_code: None, basis: "issuing_authority_subnational_or_unknown" },
+        _ => Jurisdiction { country_code: None, basis: "not_determined" },
+    }
+}
+
 // ------------------------------------------------------------------ bundle
 
 #[derive(Clone, Debug)]
