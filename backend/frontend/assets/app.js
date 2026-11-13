@@ -279,7 +279,10 @@ async function loadDetail(id, focus) {
     S.selected.record = d.alert;
     D.renderDetail(d);
     D.loadFacilities(d.alert);
-    D.loadGuideInto(d.alert.hazard_type);
+    D.loadGuideInto(d.alert.hazard_type, d.jurisdiction && d.jurisdiction.country_code);
+    D.loadContacts(d);
+    D.loadRelated(d.alert);
+    D.bindTranslate(d.alert);
     if (S.map) {
       S.map.showGeometry(d.alert.geometry_parts, PRC[d.alert.display_priority] || PRC.unknown);
       const p = (d.alert.geometry_parts || []).map(repPoint).find(Boolean);
@@ -314,6 +317,10 @@ export function closeAlert(fromHistory) {
   }
 }
 $("sheetToggle").onclick = () => $("app").classList.toggle("sheet-full");
+window.addEventListener("hashchange", () => {
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (/^[0-9a-f]{8,64}$/.test(h) && (!S.selected || S.selected.id !== h)) openAlert(h, false);
+});
 window.addEventListener("popstate", () => {
   const h = decodeURIComponent(location.hash.slice(1));
   if (h && /^[0-9a-f]{8,64}$/.test(h)) {

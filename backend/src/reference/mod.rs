@@ -188,9 +188,9 @@ impl GuidesFile {
     pub fn validate(&self) -> Result<(), ReferenceError> {
         let mut seen = HashSet::new();
         for g in &self.guides {
-            let bad = |m: &str| ReferenceError::Invalid(format!("guide {}: {m}", g.hazard));
-            if !seen.insert(g.hazard.clone()) {
-                return Err(bad("duplicate hazard"));
+            let bad = |m: &str| ReferenceError::Invalid(format!("guide {}/{}/{}: {m}", g.hazard, g.jurisdiction, g.language));
+            if !seen.insert((g.hazard.clone(), g.jurisdiction.clone(), g.language.clone())) {
+                return Err(bad("duplicate hazard/jurisdiction/language"));
             }
             if !https(&g.source_url) || g.authority.trim().is_empty() {
                 return Err(bad("guide needs an authority and an https source_url"));
@@ -200,15 +200,34 @@ impl GuidesFile {
             }
         }
         for u in &self.unavailable {
-            if seen.contains(&u.hazard) {
+            if self.guides.iter().any(|g| g.hazard == u.hazard) {
                 return Err(ReferenceError::Invalid(format!("guide {} is both available and unavailable", u.hazard)));
             }
         }
         Ok(())
     }
 
+    /// Every reviewed guide for a hazard (several jurisdictions/languages may exist).
+    pub fn guides_for(&self, hazard: &str) -> Vec<&Guide> {
+        self.guides.iter().filter(|g| g.hazard == hazard).collect()
+    }
+
+    /// Best guide for a hazard: same language and country first, then same
+    /// language, then same country, then any. Never invents a translation.
+    pub fn guide_for(&self, hazard: &str, lang: Option<&str>, country: Option<&str>) -> Option<&Guide> {
+        let all = self.guides_for(hazard);
+        let l = |g: &&Guide| lang.is_some_and(|x| g.language.eq_ignore_ascii_case(x));
+        let c = |g: &&Guide| country.is_some_and(|x| g.jurisdiction.eq_ignore_ascii_case(x));
+        all.iter()
+            .find(|g| l(g) && c(g))
+            .or_else(|| all.iter().find(|g| l(g)))
+            .or_else(|| all.iter().find(|g| c(g)))
+            .or_else(|| all.first())
+            .copied()
+    }
+
     pub fn guide(&self, hazard: &str) -> Option<&Guide> {
-        self.guides.iter().find(|g| g.hazard == hazard)
+        self.guide_for(hazard, None, None)
     }
 }
 

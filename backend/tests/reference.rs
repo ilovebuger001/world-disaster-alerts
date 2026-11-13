@@ -69,7 +69,9 @@ fn directory_covers_every_iso_country_and_is_honest() {
     assert_eq!(au.coverage, Coverage::Verified);
     assert!(au.contacts.iter().any(|k| k.dial == "000"));
     // EU 112 alone (no national police/ambulance numbers reviewed) is not full coverage.
-    assert_eq!(c.country("DE").unwrap().coverage, Coverage::PartiallyVerified);
+    assert_eq!(c.country("IT").unwrap().coverage, Coverage::PartiallyVerified);
+    assert_eq!(c.country("DE").unwrap().coverage, Coverage::Verified, "national 110/112 reviewed");
+    assert_eq!(c.country("TH").unwrap().coverage, Coverage::Verified);
     let counts = r.coverage_counts();
     assert_eq!(counts.values().sum::<usize>(), c.countries.len());
 }
@@ -122,6 +124,13 @@ fn guides_are_sourced_and_missing_ones_are_explicit() {
     }
     assert!(g.guide("earthquake").is_some());
     assert!(g.guide("drought").is_none());
+    // Language/jurisdiction preference: Thai official guide for Thai users, US guide otherwise.
+    assert_eq!(g.guide_for("flood", Some("th"), Some("TH")).unwrap().jurisdiction, "TH");
+    assert_eq!(g.guide_for("flood", Some("en"), None).unwrap().language, "en");
+    assert_eq!(g.guide_for("earthquake", Some("th"), None).unwrap().language, "en", "no invented Thai earthquake guide");
+    let mut dup = g.clone();
+    dup.guides.push(dup.guides[0].clone());
+    assert!(dup.validate().is_err(), "duplicate hazard/jurisdiction/language");
     assert!(g.unavailable.iter().any(|u| u.hazard == "drought"));
     let mut bad = g.clone();
     bad.guides[0].source_url = "http://insecure".into();
@@ -199,6 +208,8 @@ async fn reference_and_notification_endpoints() {
 
     let (s, _, b) = req(&app, get("/api/v1/guides/flood")).await;
     assert_eq!((s, b["status"].as_str()), (200, Some("available")));
+    let (_, _, b) = req(&app, get("/api/v1/guides/flood?lang=th&country=TH")).await;
+    assert_eq!(b["guide"]["language"], "th");
     let (s, _, b) = req(&app, get("/api/v1/guides/drought")).await;
     assert_eq!((s, b["status"].as_str()), (200, Some("unavailable")));
     let (s, _, _) = req(&app, get("/api/v1/guides/..%2Fetc")).await;

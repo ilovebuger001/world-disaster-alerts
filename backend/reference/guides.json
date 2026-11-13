@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "dataset_version": "2026-11-13",
+  "dataset_version": "2026-11-13.2",
   "notice": "General preparedness guidance summarized from official publications. It is not an instruction for a current incident. During an emergency, the instructions of your local authorities always take priority.",
   "guides": [
     {
@@ -92,6 +92,36 @@
         "Stay out of flood water, which can be contaminated and hide debris.",
         "Do not touch electrical equipment if it is wet or if you are standing in water.",
         "Use generators only outdoors and away from windows; wear protective clothing when cleaning up."
+      ]
+    },
+    {
+      "hazard": "flood",
+      "title": "อุทกภัย / น้ำท่วม",
+      "authority": "กรมป้องกันและบรรเทาสาธารณภัย (ปภ.) กระทรวงมหาดไทย",
+      "jurisdiction": "TH",
+      "scope": "คำแนะนำสำหรับประชาชนในประเทศไทย",
+      "language": "th",
+      "source_url": "https://backofficeminisite.disaster.go.th/apiv1/apps/minisite_ckg/203/content/4848/download?filename=259906fe75ccb82413807004cf730c03.pdf",
+      "published_or_reviewed": null,
+      "retrieved": "2026-11-13",
+      "before": [
+        "เตรียมถุงยังชีพที่มีของใช้จำเป็นให้ใช้ได้อย่างน้อย 3–5 วัน เช่น อาหาร น้ำ ยารักษาโรค และตรวจสอบให้พร้อมใช้อยู่เสมอ",
+        "เก็บเอกสารสำคัญ (เช่น สำเนาทะเบียนบ้าน) ในถุงพลาสติกหรือซองกันน้ำ",
+        "เตรียมวัสดุที่ลอยน้ำได้ เช่น ยางในรถยนต์ แกลลอนน้ำ ไว้ใช้ยึดเกาะพยุงตัว และวางไว้ในจุดที่หยิบติดตัวได้ทันทีเมื่อต้องอพยพ",
+        "ติดตามพยากรณ์อากาศ ประกาศเตือนภัย และระดับน้ำในพื้นที่ แล้วปฏิบัติตามคำเตือนอย่างเคร่งครัด",
+        "กำจัดขยะที่อุดตันท่อและทางระบายน้ำรอบบ้าน"
+      ],
+      "during": [
+        "ตัดกระแสไฟฟ้าโดยปิดสวิตช์และสับคัตเอาท์ ห้ามใช้หรือสัมผัสเครื่องใช้ไฟฟ้าขณะตัวเปียกหรือยืนบนพื้นเปียก",
+        "ถ้าต้องอพยพ ให้ช่วยเด็กและผู้สูงอายุก่อน และทำตามแผนอพยพไปยังที่ปลอดภัย",
+        "อย่าอพยพไปตามเส้นทางที่เป็นทางไหลของน้ำ และหลีกเลี่ยงการเดินข้ามลำน้ำที่สูงเกินเข่าหรือไหลเชี่ยว",
+        "ห้ามขับรถยนต์หรือรถจักรยานยนต์ผ่านบริเวณที่น้ำท่วมสูง",
+        "สวมรองเท้าบูทเมื่อเดินลุยน้ำ ใช้ไม้สำรวจเส้นทาง และไม่เดินลุยน้ำตอนกลางคืน"
+      ],
+      "after": [
+        "ระวังอันตรายจากไฟฟ้า สัตว์มีพิษที่อาจหนีน้ำเข้ามาในบ้าน และเศษแก้วหรือของมีคมที่จมอยู่ใต้น้ำ",
+        "ระวังโรคที่มากับน้ำท่วม",
+        "ติดตามประกาศของหน่วยงานในพื้นที่ก่อนกลับเข้าบ้าน"
       ]
     },
     {
@@ -310,6 +340,9 @@
     }
   ],
   "unavailable": [
-    { "hazard": "drought", "reason": "No complete official before/during/after guidance was reviewed yet." }
+    {
+      "hazard": "drought",
+      "reason": "No complete official before/during/after guidance was reviewed yet."
+    }
   ]
 }

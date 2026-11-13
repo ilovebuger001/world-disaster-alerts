@@ -2,7 +2,7 @@
 // own last-known snapshot, emergency directory and guides in IndexedDB together
 // with the time they were saved, and labels them as stored copies.
 // Map tiles and the map library come from third parties and are not cached here.
-const VERSION = "wda-shell-v3";
+const VERSION = "wda-shell-v4";
 const SHELL = [
   "./",
   "index.html",
