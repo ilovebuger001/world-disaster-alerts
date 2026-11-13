@@ -25,17 +25,13 @@ jobs:
           python-version: "3.12"
       - name: Format
         run: cargo fmt --check
-      - name: Refresh lockfile for quick-xml upgrade (temporary)
-        run: |
-          cargo update -p quick-xml
-          echo "LOCKFILE-BEGIN"; base64 -w0 Cargo.lock; echo; echo "LOCKFILE-END"
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-audit
       - name: Dependency audit (RustSec)
-        run: cargo audit --deny warnings || cargo audit
+        run: cargo audit
       - name: Build
-        run: cargo build --all-targets
+        run: cargo build --locked --all-targets
       - name: Test
         run: cargo test --locked --all-targets -- --test-threads=4
       - name: Clippy
