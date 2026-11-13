@@ -31,11 +31,22 @@
 * The container runs as a non-root user with a read-only root filesystem,
   `no-new-privileges` and all capabilities dropped (docker-compose.yml).
 
+## Checks in CI
+
+* `cargo audit` (RustSec advisory database) on every push.
+* Secret scan of frontend, configuration, reference data, tools and workflows.
+* Production-config refusal test in the Docker job.
+* No secret is needed for the default feature set; optional secrets
+  (`WDA_METRICS_TOKEN`, `WDA_TRANSLATE_API_KEY`) are read from the environment only
+  and never logged or sent to the browser.
+
 ## Known gaps
 
 * MapLibre is loaded from the unpkg CDN with Subresource Integrity (sha384,
   recomputed and printed by CI). The optional RTL text plugin is loaded without
   SRI. `style-src` allows inline styles because marker colours are set inline.
-* No Web Push (no VAPID keys provisioned); notifications work only while the
-  page is open.
+* No Web Push (no VAPID keys provisioned, and it needs extra crypto
+  dependencies); notifications and the alert tone work only while the page is open.
+* Rate limiting is per process and in memory (fine for one server; not shared
+  across replicas).
 * CAP digital signatures are not verified (shown as such in the UI).

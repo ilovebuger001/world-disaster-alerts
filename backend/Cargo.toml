@@ -3,7 +3,7 @@ name = "world-disaster-alerts"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.80"
-description = "World Disaster Alerts — Rust-only backend (Rev.2.9 spec, Phase 1–2)"
+description = "World Disaster Alerts — Rust backend, release Rev.3 (implements the Rev.2.9 engineering specification)"
 license = "MIT"
 publish = false
 
