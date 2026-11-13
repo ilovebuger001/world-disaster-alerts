@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 /// sprites come from OpenFreeMap; the MapLibre library from unpkg (pinned version).
 pub const CSP: &str = "default-src 'self'; \
 script-src 'self' https://unpkg.com; \
-style-src 'self' https://unpkg.com; \
+style-src 'self' 'unsafe-inline' https://unpkg.com; \
 img-src 'self' data: blob: https://tiles.openfreemap.org; \
 font-src 'self'; \
 connect-src 'self' https://tiles.openfreemap.org; \

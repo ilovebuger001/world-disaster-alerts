@@ -1,64 +1,68 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f2937">
+<meta name="description" content="Official disaster alerts on a map, with emergency numbers and preparedness guides.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https://tiles.openfreemap.org; font-src 'self'; connect-src 'self' https:; worker-src 'self' blob:; child-src blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<!-- API origin: empty = same origin (served by the Rust server). The Pages
+     deploy workflow replaces this with the configured backend URL, or with
+     "unconfigured" so the page says honestly that there is no data server. -->
+<meta name="wda-api-base" content="">
 <title>World Disaster Alerts</title>
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
-<script>
-/* theme before first paint (spec §64.9) */
-(function(){try{var t=localStorage.getItem('wda.theme')||'auto';var d=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){document.documentElement.dataset.theme='light';}})();
-</script>
-<link rel="stylesheet" href="/assets/app.css">
-<script src="/assets/config.js"></script>
-<script type="module" src="/assets/app.js"></script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
+<script src="assets/theme.js"></script>
+<link rel="stylesheet" href="assets/app.css">
+<script type="module" src="assets/app.js"></script>
 </head>
 <body>
+<a class="skip" href="#q">Skip to search</a>
 <div class="app" id="app">
-  <div id="mapwrap"><div class="maploading" id="maploading"></div><div id="map" role="application" aria-label="Map"></div></div>
+  <div id="mapwrap"><div class="maploading" id="maploading"></div><div id="map" role="region" aria-label="Map"></div></div>
 
   <div class="top">
     <div class="search" role="combobox" aria-haspopup="listbox" aria-owns="sugg" aria-expanded="false" id="searchbox">
       <div class="pill">
         <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <input id="q" type="search" autocomplete="off" aria-autocomplete="list" aria-controls="sugg">
-        <button class="iconbtn" id="qclear" hidden>×</button>
-        <button class="iconbtn" id="filterBtn" aria-controls="filters"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <input id="q" type="search" autocomplete="off" enterkeyhint="search" aria-autocomplete="list" aria-controls="sugg" maxlength="120">
+        <button class="iconbtn" id="qclear" type="button" hidden>×</button>
+        <button class="iconbtn" id="filterBtn" type="button" aria-controls="filters"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
       </div>
       <div class="sugg" id="sugg" role="listbox"></div>
     </div>
-    <div class="status" role="status" aria-live="polite" id="status"><span class="dot"></span><span id="statusText"></span></div>
+    <div class="status" role="status" aria-live="polite" id="status"><span class="dot"></span><span id="statusText"></span><button class="retry" id="retryBtn" type="button" hidden></button></div>
+    <button class="trackbadge" id="trackBadge" type="button" hidden></button>
   </div>
 
-  <aside class="detail" id="detail">
-    <div class="sheetbar"><button id="sheetToggle" aria-label="expand"><span></span></button></div>
+  <aside class="detail" id="detail" aria-label="Alert">
+    <div class="sheetbar"><button id="sheetToggle" type="button" aria-label="Expand"><span></span></button></div>
     <div class="detail-inner" id="detailInner"></div>
   </aside>
 
   <div class="nomark" id="nomark" hidden></div>
 
   <div class="ctrls">
-    <button class="cbtn" id="listBtn" aria-pressed="false" aria-controls="listPanel"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-    <button class="cbtn" id="styleBtn" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
-    <button class="cbtn" id="worldBtn"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l4 10h-8z" fill="#d93025"/><path d="M12 22l-4-10h8z" fill="#9aa0a6"/></svg></button>
-    <button class="cbtn" id="locBtn"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-    <div class="zoom"><button id="zin" aria-label="+">+</button><button id="zout" aria-label="−">−</button></div>
+    <button class="cbtn" id="listBtn" type="button" aria-pressed="false" aria-controls="listPanel"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <button class="cbtn" id="worldBtn" type="button"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+    <button class="cbtn" id="locBtn" type="button" aria-pressed="false" aria-controls="locMenu"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <div class="zoom"><button id="zin" type="button" aria-label="Zoom in">+</button><button id="zout" type="button" aria-label="Zoom out">−</button></div>
     <div class="row">
-      <button class="langpill" id="langBtn" aria-controls="settings"><span id="langCode">TH</span><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
-      <button class="cbtn" id="helpBtn" aria-pressed="false" aria-controls="help">?</button>
+      <button class="langpill" id="langBtn" type="button" aria-controls="settings"><span id="langCode">EN</span><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+      <button class="cbtn sos" id="helpBtn" type="button" aria-haspopup="dialog">?</button>
     </div>
   </div>
 
-  <div class="float" id="listPanel" role="region"></div>
-  <div class="float" id="filters" role="dialog"></div>
-  <div class="float" id="help" role="dialog"></div>
-  <div class="float" id="settings" role="dialog"></div>
+  <div class="float" id="listPanel" role="region" aria-label="List"></div>
+  <div class="float" id="filters" role="dialog" aria-label="Filters"></div>
+  <div class="float" id="settings" role="dialog" aria-label="Settings"></div>
+  <div class="float small" id="locMenu" role="dialog" aria-label="Location"></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </div>
+<div class="helpscreen" id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden></div>
+<noscript><p style="padding:16px">This site needs JavaScript for the map. Emergency numbers are also available at /api/v1/contacts.</p></noscript>
 </body>
 </html>

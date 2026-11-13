@@ -4,6 +4,8 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -18,24 +20,53 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: backend
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Format
+        run: cargo fmt --check
       - name: Build
         run: cargo build --locked --all-targets
       - name: Test
         run: cargo test --locked --all-targets -- --test-threads=4
       - name: Clippy
         run: cargo clippy --locked --all-targets -- -D warnings
-      - name: Format
-        run: cargo fmt --check
+      - name: Release build
+        run: cargo build --locked --release
+      - name: Frontend budget (brotli)
+        run: node ../tools/measure_budget.mjs frontend || echo "::warning::frontend over budget (see log)"
+      - name: Secret scan (frontend and config)
+        run: |
+          if grep -RInE 'AIza[0-9A-Za-z_-]{30,}|sk-[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY' frontend config reference e2e ../tools ../.github; then
+            echo "::error::possible secret committed"; exit 1; fi
+      - name: MapLibre SRI (informational)
+        run: |
+          curl -fsSL https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js | openssl dgst -sha384 -binary | openssl base64 -A | sed 's/^/maplibre-gl.js sha384-/'; echo
+          curl -fsSL https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css | openssl dgst -sha384 -binary | openssl base64 -A | sed 's/^/maplibre-gl.css sha384-/'; echo
+      - name: End-to-end (real server + Chromium, desktop and mobile)
+        run: |
+          python3 -m pip install --quiet playwright==1.48.0
+          python3 -m playwright install --with-deps chromium > /dev/null
+          mkdir -p /tmp/wda-e2e
+          (cd tests/fixtures/cap && python3 -m http.server 9000 --bind 127.0.0.1 > /tmp/wda-e2e/fixture.log 2>&1 &)
+          WDA_CONFIG=e2e/app.e2e.toml ./target/release/wda-server > /tmp/wda-e2e/server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/health/ready && break; sleep 1; done
+          python3 e2e/test_e2e.py http://127.0.0.1:8080 || (tail -50 /tmp/wda-e2e/server.log; exit 1)
       - name: Live smoke test (real USGS feed)
         continue-on-error: true
         run: |
-          cargo build --locked --release
-          mkdir -p /tmp/wda && WDA_BIND=127.0.0.1:8080 ./target/release/wda-server > /tmp/wda/server.log 2>&1 &
-          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/health/ready && break; sleep 2; done
+          pkill wda-server || true
+          mkdir -p /tmp/wda && WDA_BIND=127.0.0.1:8081 ./target/release/wda-server > /tmp/wda/server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8081/health/ready && break; sleep 2; done
           sleep 75
-          echo "--- meta";    curl -fsS http://127.0.0.1:8080/api/v1/meta; echo
-          echo "--- sources"; curl -fsS http://127.0.0.1:8080/api/v1/sources | head -c 1500; echo
-          echo "--- alerts";  curl -fsS "http://127.0.0.1:8080/api/v1/alerts?west=-180&south=-85&east=180&north=85&zoom=2" | python3 -c "import sys,json;d=json.load(sys.stdin);print('total',d['total_matching'],'features',len(d['features']),'seq',d['event_sequence']);print(json.dumps(d['items'][:1],ensure_ascii=False)[:800])"
-          echo "--- stream";  timeout 5 curl -sN "http://127.0.0.1:8080/api/v1/stream?after=0" | head -c 600 || true; echo
-          echo "--- frontend"; curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8080/
+          echo "--- meta";    curl -fsS http://127.0.0.1:8081/api/v1/meta; echo
+          echo "--- alerts";  curl -fsS "http://127.0.0.1:8081/api/v1/alerts?west=-180&south=-85&east=180&north=85&zoom=2" | python3 -c "import sys,json;d=json.load(sys.stdin);print('total',d['total_matching'],'features',len(d['features']),'seq',d['event_sequence'])"
+          echo "--- contacts"; curl -fsS http://127.0.0.1:8081/api/v1/contacts/US | head -c 400; echo
+          echo "--- headers"; curl -fsSI http://127.0.0.1:8081/ | grep -iE 'content-security|x-content-type|referrer'
           echo "--- log"; tail -20 /tmp/wda/server.log
+      - name: Upload release binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: wda-server-linux-x86_64
+          path: backend/target/release/wda-server
+          retention-days: 7

@@ -44,6 +44,35 @@ export async function saveSnapshot(snapshot) {
   } catch {}
 }
 
+/** Generic keyed cache (emergency directory, guides) with the time it was saved. */
+export async function kvPut(key, value) {
+  try {
+    const db = await open();
+    await new Promise((res, rej) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put({ value, saved_at_ms: Date.now() }, "kv:" + key);
+      tx.oncomplete = res;
+      tx.onerror = () => rej(tx.error);
+    });
+    db.close();
+  } catch {}
+}
+
+export async function kvGet(key) {
+  try {
+    const db = await open();
+    const v = await new Promise((res, rej) => {
+      const r = db.transaction(STORE).objectStore(STORE).get("kv:" + key);
+      r.onsuccess = () => res(r.result || null);
+      r.onerror = () => rej(r.error);
+    });
+    db.close();
+    return v;
+  } catch {
+    return null;
+  }
+}
+
 export async function loadSnapshot() {
   try {
     const db = await open();

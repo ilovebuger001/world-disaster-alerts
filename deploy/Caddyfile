@@ -1,0 +1,15 @@
+{$WDA_DOMAIN} {
+	encode zstd gzip
+	# SSE must not be buffered.
+	reverse_proxy wda:8080 {
+		flush_interval -1
+		header_up X-Forwarded-For {remote_host}
+	}
+	request_body {
+		max_size 16KB
+	}
+	log {
+		output stdout
+		format json
+	}
+}

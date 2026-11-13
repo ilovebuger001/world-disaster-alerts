@@ -1,0 +1,21 @@
+[[sources]]
+source_id = "e2e-cap"
+agency_name = "E2E fixture authority"
+country_or_region = "Test"
+official_homepage = "https://example.invalid/"
+feed_url = "http://127.0.0.1:9000/alert.xml"
+format = "cap"
+hazard_types = ["all"]
+geographic_coverage = "Test fixture"
+poll_interval_seconds = 15
+request_timeout_seconds = 5
+max_response_bytes = 1048576
+expected_freshness_seconds = 600
+terms_or_redistribution_notes = "Test fixture only."
+adapter_name = "cap"
+enabled = true
+publisher_class = "national"
+authority_role = "warning_issuer"
+redistribution_status = "review_pending"
+coverage_state = "integrated"
+onboarding_state = "legal_review_pending"

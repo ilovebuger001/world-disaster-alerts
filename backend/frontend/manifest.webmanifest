@@ -1,9 +1,9 @@
 {
   "name": "World Disaster Alerts",
   "short_name": "Disaster Alerts",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1f2937",
-  "icons": [{ "src": "/assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "icons": [{ "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
 }

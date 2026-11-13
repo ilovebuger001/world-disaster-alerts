@@ -1,0 +1,15 @@
+# End-to-end test configuration: the real server, ingesting a CAP fixture from a
+# local HTTP server. Development only (allow_private_destinations is refused in production).
+environment = "development"
+bind = "127.0.0.1:8080"
+data_dir = "/tmp/wda-e2e/data"
+sources_file = "e2e/sources.e2e.toml"
+severity_mapping_file = "config/severity-mapping.toml"
+gazetteer_file = "config/gazetteer.toml"
+frontend_dir = "frontend"
+user_agent = "WorldDisasterAlerts-e2e/0.1"
+allow_private_destinations = true
+
+[http]
+cors_allowed_origins = []
+rate_limit_per_minute = 2000

@@ -41,6 +41,7 @@ pub fn router_with(state: AppState, frontend_dir: Option<std::path::PathBuf>, ht
         .route("/api/v1/guides", get(api::reference::guides))
         .route("/api/v1/guides/:hazard", get(api::reference::guide))
         .route("/api/v1/geocode", get(api::geocode::geocode))
+        .route("/api/v1/geocode/reverse", get(api::geocode::reverse))
         .route("/api/v1/notify/eligible", get(api::notify::eligible_alerts))
         .with_state(state);
     let app = match frontend_dir {

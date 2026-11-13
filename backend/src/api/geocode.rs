@@ -30,7 +30,7 @@ pub struct Geocoder {
     cache: Mutex<HashMap<String, Value>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 struct NomItem {
     display_name: String,
     lat: String,
@@ -63,28 +63,25 @@ impl Geocoder {
         })
     }
 
-    pub async fn search(&self, q: &str, lang: &str) -> Result<Value, ApiError> {
-        let key = format!("{lang}\u{1f}{}", q.to_lowercase());
+    /// One upstream request at a time, spaced by `min_interval`, with a cache.
+    async fn fetch(&self, path: &str, query: &[(&str, &str)], key: String) -> Result<Value, ApiError> {
         if let Some(v) = self.cache.lock().ok().and_then(|c| c.get(&key).cloned()) {
             return Ok(v);
         }
-        // One upstream request at a time, spaced by min_interval. Give up rather
-        // than queue indefinitely when many users search at once.
+        // Give up rather than queue indefinitely when many users search at once.
         let mut last = tokio::time::timeout(Duration::from_secs(4), self.last.lock()).await.map_err(|_| {
             ApiError::new(StatusCode::SERVICE_UNAVAILABLE, "geocoder_busy", "Address search is busy. Try again in a few seconds.")
         })?;
+        if let Some(v) = self.cache.lock().ok().and_then(|c| c.get(&key).cloned()) {
+            return Ok(v);
+        }
         if let Some(t) = *last {
             let wait = self.min_interval.saturating_sub(t.elapsed());
             if !wait.is_zero() {
                 tokio::time::sleep(wait).await;
             }
         }
-        let res = self
-            .client
-            .get(format!("{}/search", self.base_url))
-            .query(&[("q", q), ("format", "jsonv2"), ("limit", "5"), ("accept-language", lang)])
-            .send()
-            .await;
+        let res = self.client.get(format!("{}/{path}", self.base_url)).query(query).send().await;
         *last = Some(Instant::now());
         drop(last);
         let unavailable = || ApiError::new(StatusCode::BAD_GATEWAY, "geocoder_unavailable", "Address search is temporarily unavailable.");
@@ -100,7 +97,25 @@ impl Geocoder {
         if bytes.len() > 256 * 1024 {
             return Err(unavailable());
         }
-        let items: Vec<NomItem> = serde_json::from_slice(&bytes).map_err(|_| unavailable())?;
+        let v: Value = serde_json::from_slice(&bytes).map_err(|_| unavailable())?;
+        if let Ok(mut c) = self.cache.lock() {
+            if c.len() >= self.cache_entries {
+                c.clear();
+            }
+            c.insert(key, v.clone());
+        }
+        Ok(v)
+    }
+
+    pub async fn search(&self, q: &str, lang: &str) -> Result<Value, ApiError> {
+        let raw = self
+            .fetch(
+                "search",
+                &[("q", q), ("format", "jsonv2"), ("limit", "5"), ("accept-language", lang)],
+                format!("s\u{1f}{lang}\u{1f}{}", q.to_lowercase()),
+            )
+            .await?;
+        let items: Vec<NomItem> = serde_json::from_value(raw).unwrap_or_default();
         let out: Vec<Value> = items
             .into_iter()
             .filter_map(|i| {
@@ -113,14 +128,24 @@ impl Geocoder {
                 Some(json!({ "name": i.display_name, "lat": lat, "lon": lon, "category": i.category, "kind": i.kind, "bbox": bbox }))
             })
             .collect();
-        let v = json!({ "items": out, "attribution": ATTRIBUTION });
-        if let Ok(mut c) = self.cache.lock() {
-            if c.len() >= self.cache_entries {
-                c.clear();
-            }
-            c.insert(key, v.clone());
-        }
-        Ok(v)
+        Ok(json!({ "items": out, "attribution": ATTRIBUTION }))
+    }
+
+    /// Country of a point (zoom=3), used only to *suggest* a country in the
+    /// emergency directory. Coordinates are rounded to ~100 m by the caller.
+    pub async fn country_of(&self, lat: f64, lon: f64) -> Result<Value, ApiError> {
+        let (la, lo) = (format!("{lat:.2}"), format!("{lon:.2}"));
+        let raw = self
+            .fetch(
+                "reverse",
+                &[("lat", la.as_str()), ("lon", lo.as_str()), ("format", "jsonv2"), ("zoom", "3")],
+                format!("r\u{1f}{la},{lo}"),
+            )
+            .await?;
+        let addr = raw.get("address");
+        let code = addr.and_then(|a| a.get("country_code")).and_then(Value::as_str).filter(|c| c.len() == 2).map(str::to_ascii_uppercase);
+        let name = addr.and_then(|a| a.get("country")).and_then(Value::as_str);
+        Ok(json!({ "country_code": code, "country": name, "attribution": ATTRIBUTION }))
     }
 }
 
@@ -153,5 +178,17 @@ pub async fn geocode(State(st): State<AppState>, Query(q): Query<HashMap<String,
     match &st.geocoder {
         Some(g) => g.search(raw, lang).await.map(Json),
         None => Err(ApiError::new(StatusCode::NOT_IMPLEMENTED, "geocoder_disabled", "Address search is not enabled on this server.")),
+    }
+}
+
+pub async fn reverse(State(st): State<AppState>, Query(q): Query<HashMap<String, String>>) -> Result<Json<Value>, ApiError> {
+    let f = |k: &str| q.get(k).and_then(|v| v.parse::<f64>().ok()).filter(|v| v.is_finite());
+    let (lat, lon) = match (f("lat"), f("lon")) {
+        (Some(a), Some(b)) if (-90.0..=90.0).contains(&a) && (-180.0..=180.0).contains(&b) => (a, b),
+        _ => return Err(ApiError::bad_request("invalid_location", "lat and lon are required and must be in range.")),
+    };
+    match &st.geocoder {
+        Some(g) => g.country_of(lat, lon).await.map(Json),
+        None => Err(ApiError::new(StatusCode::NOT_IMPLEMENTED, "geocoder_disabled", "Location lookup is not enabled on this server.")),
     }
 }

@@ -2,6 +2,11 @@ use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    if std::env::args().any(|a| a == "--healthcheck") {
+        // For container health checks (the slim image has no curl).
+        let addr = std::env::var("WDA_HEALTH_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".into());
+        std::process::exit(if healthcheck(&addr) { 0 } else { 1 });
+    }
     wda::observability::logging::init();
     let path = PathBuf::from(std::env::var("WDA_CONFIG").unwrap_or_else(|_| "config/app.toml".into()));
     // Configuration is validated before any port is bound.
@@ -28,4 +33,17 @@ async fn main() -> anyhow::Result<()> {
     drop(running.state);
     let _ = running.writer_thread.join();
     Ok(())
+}
+
+fn healthcheck(addr: &str) -> bool {
+    use std::io::{Read, Write};
+    let Ok(sock) = addr.parse::<std::net::SocketAddr>() else { return false };
+    let Ok(mut s) = std::net::TcpStream::connect_timeout(&sock, std::time::Duration::from_secs(3)) else { return false };
+    let _ = s.set_read_timeout(Some(std::time::Duration::from_secs(3)));
+    if s.write_all(b"GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n").is_err() {
+        return false;
+    }
+    let mut buf = [0u8; 64];
+    let n = s.read(&mut buf).unwrap_or(0);
+    buf[..n].starts_with(b"HTTP/1.1 200")
 }

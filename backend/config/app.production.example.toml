@@ -1,0 +1,30 @@
+# Production configuration example. Copy to config/app.production.toml on the
+# server and adjust. The server refuses to start if a production rule is broken
+# (unreviewed source enabled, private destinations allowed, wildcard CORS, no rate limit).
+environment = "production"
+bind = "0.0.0.0:8080"
+data_dir = "/app/data"
+# Only sources whose legal/redistribution review is approved may be enabled in
+# production. The bundled sources.example.toml has USGS "review_pending", so it
+# will be refused until the owner records the approval (see docs/DEPLOYMENT.md).
+sources_file = "config/sources.production.toml"
+severity_mapping_file = "config/severity-mapping.toml"
+gazetteer_file = "config/gazetteer.toml"
+frontend_dir = "frontend"
+user_agent = "WorldDisasterAlerts/0.3 (+https://github.com/ilovebuger001/world-disaster-alerts; contact via GitHub issues)"
+max_in_flight_fetches = 4
+allow_private_destinations = false
+
+[http]
+# The GitHub Pages origin, if the frontend is also published there.
+cors_allowed_origins = ["https://ilovebuger001.github.io"]
+rate_limit_per_minute = 300
+trust_forwarded_for = true   # behind Caddy (docker-compose.yml)
+hsts = true
+
+[geocoder]
+# Turning this on means following the OSMF Nominatim usage policy:
+# at most 1 request/s (enforced), identifying User-Agent, attribution, no bulk use.
+enabled = false
+base_url = "https://nominatim.openstreetmap.org"
+min_interval_ms = 1100

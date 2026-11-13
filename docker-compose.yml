@@ -1,0 +1,39 @@
+# One Linux server: the Rust server plus Caddy for automatic HTTPS.
+#   1. Point a DNS A/AAAA record (WDA_DOMAIN) at the server.
+#   2. Create backend/config/app.production.toml and sources.production.toml.
+#   3. WDA_DOMAIN=alerts.example.org docker compose up -d --build
+services:
+  wda:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      WDA_CONFIG: /app/config/app.production.toml
+      RUST_LOG: info
+    volumes:
+      - wda-data:/app/data
+      - ./backend/config:/app/config:ro
+    expose: ["8080"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    healthcheck:
+      test: ["CMD", "/app/wda-server", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [wda]
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      WDA_DOMAIN: ${WDA_DOMAIN:?set WDA_DOMAIN to your domain}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+volumes:
+  wda-data:
+  caddy-data:
+  caddy-config:
