@@ -6,6 +6,7 @@
 }
 [data-theme=dark]{--panel:#1e2228;--panel2:#272c34;--text:#e8eaed;--muted:#a1a8b3;--line:#343a44;--accent:#e8eaed;--focus:#8ab4f8;--shadow:0 2px 6px rgba(0,0,0,.5),0 8px 24px rgba(0,0,0,.35)}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;height:100%;overflow:hidden;color:var(--text);font-family:var(--font);font-size:100%;line-height:1.5;-webkit-font-smoothing:antialiased}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -171,6 +172,9 @@ button{cursor:pointer}
 [dir=rtl] .float{right:auto;left:72px}
 [dir=rtl] .detail{left:auto;right:12px}
 @media (max-width:760px){
+  /* keep the control column (incl. Help) reachable while a panel is open */
+  .float{right:66px;left:8px}
+  #statusText{white-space:normal}
   .float.small{width:auto}
   .hs-body{padding:10px 12px calc(32px + var(--safe-b))}
   .crow{flex-direction:column;gap:6px}

@@ -30,6 +30,12 @@ export async function getJson(path, signal) {
   return body;
 }
 
+async function staticJson(path) {
+  const res = await fetch(path, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new ApiError(res.status, "http_" + res.status, res.statusText);
+  return res.json();
+}
+
 /** Wraps a request kind so only the newest response is ever applied. */
 export function latest() {
   let ctrl = null;
@@ -49,8 +55,10 @@ export const api = {
   sources: () => getJson("/api/v1/sources"),
   detail: (id) => getJson("/api/v1/alerts/" + encodeURIComponent(id)),
   facilities: (id) => getJson("/api/v1/alerts/" + encodeURIComponent(id) + "/facilities"),
-  contacts: () => getJson("/api/v1/contacts"),
-  guides: () => getJson("/api/v1/guides"),
+  // Without a data server (e.g. a static Pages mirror) the same reviewed
+  // reference files are published next to the page, so the directory still works.
+  contacts: () => (backendConfigured() ? getJson("/api/v1/contacts") : staticJson("reference/emergency_contacts.json")),
+  guides: () => (backendConfigured() ? getJson("/api/v1/guides") : staticJson("reference/guides.json")),
   geocode: (q, lang) => getJson("/api/v1/geocode?" + new URLSearchParams({ q, lang }).toString()),
   reverse: (lat, lon) => getJson("/api/v1/geocode/reverse?" + new URLSearchParams({ lat: lat.toFixed(3), lon: lon.toFixed(3) }).toString()),
   eligible: (lat, lon) =>

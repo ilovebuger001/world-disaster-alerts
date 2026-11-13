@@ -674,7 +674,7 @@ function applyI18n() {
     S.app = "unconfigured";
     renderStatus();
     initMap();
-    openList(true);
+    if (!matchMedia("(max-width:760px)").matches) openList(true);
     return;
   }
   const cached = await loadSnapshot();
